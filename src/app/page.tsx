@@ -1,18 +1,17 @@
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import { Utensils, Smartphone, CreditCard, ShieldCheck, ChevronRight } from 'lucide-react';
+import { Smartphone, CreditCard, ShieldCheck, ChevronRight } from 'lucide-react';
 
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}
       <header className="px-6 h-20 flex items-center justify-between bg-white/50 backdrop-blur-md sticky top-0 z-50 border-b">
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-            <Utensils className="text-white w-6 h-6" />
-          </div>
-          <span className="text-2xl font-bold tracking-tight text-primary">ChopChop NG</span>
-        </div>
+        <Link href="/" className="flex items-center">
+          <span className="text-2xl font-bold tracking-tighter text-foreground">
+            resturant<span className="text-primary">me</span>
+          </span>
+        </Link>
         <nav className="hidden md:flex items-center gap-8">
           <Link href="#features" className="text-sm font-medium hover:text-primary transition-colors">Features</Link>
           <Link href="#pricing" className="text-sm font-medium hover:text-primary transition-colors">Pricing</Link>
@@ -124,13 +123,12 @@ export default function Home() {
 
       <footer className="py-12 px-6 border-t bg-white">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Utensils className="text-white w-4 h-4" />
-            </div>
-            <span className="text-xl font-bold text-primary">ChopChop NG</span>
-          </div>
-          <p className="text-sm text-muted-foreground">© 2024 ChopChop Technologies. Built for Nigeria.</p>
+          <Link href="/" className="flex items-center">
+            <span className="text-xl font-bold tracking-tighter text-foreground">
+              resturant<span className="text-primary">me</span>
+            </span>
+          </Link>
+          <p className="text-sm text-muted-foreground">© 2024 resturantme Technologies. Built for Nigeria.</p>
         </div>
       </footer>
     </div>

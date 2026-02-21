@@ -28,12 +28,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex min-h-screen bg-background">
         <Sidebar variant="sidebar" collapsible="icon" className="border-r border-border/50">
           <SidebarHeader className="h-20 flex items-center px-6">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shrink-0">
-                <Utensils className="text-white w-5 h-5" />
-              </div>
-              <span className="font-bold text-lg text-primary truncate">ChopChop</span>
-            </div>
+            <Link href="/dashboard" className="flex items-center">
+              <span className="text-2xl font-bold tracking-tighter text-foreground truncate">
+                resturant<span className="text-primary">me</span>
+              </span>
+            </Link>
           </SidebarHeader>
           <SidebarContent className="px-3">
             <SidebarMenu>

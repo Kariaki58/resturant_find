@@ -1,4 +1,4 @@
-import { Utensils, Info, Clock, MapPin, Search, ChevronRight } from 'lucide-react';
+import { Info, Clock, MapPin, Search, ChevronRight } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -31,8 +31,8 @@ export default function RestaurantMenuPage({ params }: { params: { slug: string 
           data-ai-hint="restaurant food banner"
         />
         <div className="absolute inset-0 bg-black/40" />
-        <Link href="/" className="absolute top-6 left-6 text-white font-bold flex items-center gap-2">
-          <Utensils size={20} /> ChopChop
+        <Link href="/" className="absolute top-6 left-6 text-white font-bold flex items-center gap-1 tracking-tighter text-xl">
+          resturant<span className="text-primary">me</span>
         </Link>
       </div>
 

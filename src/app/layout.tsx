@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'ChopChop NG | Nigerian Restaurant Management',
+  title: 'resturantme | Nigerian Restaurant Management',
   description: 'Full-stack SaaS platform for Nigerian restaurants. Manage orders, menus, and table reservations with ease.',
 };
 
