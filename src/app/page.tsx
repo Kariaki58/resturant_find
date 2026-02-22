@@ -48,7 +48,7 @@ export default function Home() {
             <div className="relative">
               <div className="absolute -inset-4 bg-primary/20 blur-3xl rounded-full animate-pulse" />
               <img 
-                src="https://picsum.photos/seed/restaurant/800/600" 
+                src="https://res.cloudinary.com/duswkmqbu/image/upload/v1771751287/resturant_w8gbba.jpg" 
                 alt="Restaurant Dashboard" 
                 className="relative rounded-2xl shadow-2xl border-4 border-white"
                 data-ai-hint="restaurant dashboard"

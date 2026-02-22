@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -12,8 +13,6 @@ export async function GET(req: Request) {
   // Flutterwave can return 'successful' or 'completed' for successful payments
   if ((status === 'successful' || status === 'completed') && txRef) {
     try {
-      // Create Supabase client first (needed for pending_restaurants lookup)
-      const supabase = await createClient();
 
       // Extract user_id from tx_ref (format: restaurant-{user_id}-{timestamp})
       const txRefParts = txRef.split('-');
@@ -22,6 +21,9 @@ export async function GET(req: Request) {
         return NextResponse.redirect(new URL('/checkout?error=invalid_transaction', req.url));
       }
       const userId = txRefParts[1];
+
+      // Create admin client early for faster operations (bypasses RLS)
+      const adminClient = createAdminClient();
 
       // Always verify the transaction with Flutterwave API
       let transactionData = null;
@@ -63,7 +65,7 @@ export async function GET(req: Request) {
       if (!restaurantName || !slug) {
         console.log('Meta not available in transaction, retrieving from pending_restaurants table');
         try {
-          const { data: pendingData, error: pendingError } = await supabase
+          const { data: pendingData, error: pendingError } = await adminClient
             .from('pending_restaurants' as any)
             .select('*')
             .eq('tx_ref', txRef)
@@ -81,7 +83,7 @@ export async function GET(req: Request) {
             accountName = (pendingData as any).account_name;
 
             // Clean up pending record
-            await supabase.from('pending_restaurants' as any).delete().eq('tx_ref', txRef);
+            await adminClient.from('pending_restaurants' as any).delete().eq('tx_ref', txRef);
           }
         } catch (error) {
           console.error('Error retrieving from pending_restaurants:', error);
@@ -94,41 +96,33 @@ export async function GET(req: Request) {
         return NextResponse.redirect(new URL('/checkout?error=missing_data&tx_ref=' + txRef, req.url));
       }
 
-      // Verify user exists with retry logic (trigger might still be creating the record)
+      // Check if user exists (with quick retry for trigger timing)
       let existingUser = null;
-      let userCheckError = null;
-      const maxUserCheckAttempts = 5;
+      let attempts = 0;
+      const maxAttempts = 3; // Reduced from 5
       
-      for (let attempt = 0; attempt < maxUserCheckAttempts; attempt++) {
-        if (attempt > 0) {
-          await new Promise(resolve => setTimeout(resolve, 500 * attempt));
+      while (attempts < maxAttempts && !existingUser) {
+        if (attempts > 0) {
+          await new Promise(resolve => setTimeout(resolve, 200)); // Reduced delay from 500ms
         }
         
-        const result = await supabase
+        const { data: userData } = await adminClient
           .from('users')
           .select('id, restaurant_id')
           .eq('id', userId)
           .maybeSingle();
         
-        existingUser = result.data;
-        userCheckError = result.error;
-        
-        if (existingUser) {
-          break; // User found
-        }
-        
-        // If it's not a "not found" error, break immediately
-        if (userCheckError && userCheckError.code !== 'PGRST116') {
+        if (userData) {
+          existingUser = userData;
           break;
         }
+        attempts++;
       }
 
-      // If user still doesn't exist, try to create it as fallback
-      if (!existingUser && !userCheckError) {
-        console.log('User not found in users table, attempting to create...');
+      // If user doesn't exist, create it immediately
+      if (!existingUser) {
+        console.log('User not found, creating user record immediately...');
         try {
-          // Get user from auth to get email and metadata
-          const adminClient = (await import('@/lib/supabase/admin')).createAdminClient();
           const { data: authUser } = await adminClient.auth.admin.getUserById(userId);
           
           if (authUser?.user) {
@@ -147,19 +141,19 @@ export async function GET(req: Request) {
             
             if (newUser && !createError) {
               existingUser = newUser;
-              console.log('User created successfully as fallback');
+              console.log('User created successfully');
             } else {
-              console.error('Failed to create user as fallback:', createError);
+              console.error('Failed to create user:', createError);
+              return NextResponse.redirect(new URL('/checkout?error=user_not_found', req.url));
             }
+          } else {
+            console.error('User not found in auth.users:', userId);
+            return NextResponse.redirect(new URL('/checkout?error=user_not_found', req.url));
           }
         } catch (fallbackError) {
-          console.error('Error in user creation fallback:', fallbackError);
+          console.error('Error creating user:', fallbackError);
+          return NextResponse.redirect(new URL('/checkout?error=user_not_found', req.url));
         }
-      }
-
-      if (!existingUser) {
-        console.error('User not found after retries and fallback:', userId, userCheckError);
-        return NextResponse.redirect(new URL('/checkout?error=user_not_found', req.url));
       }
 
       // Check if user already has a restaurant
@@ -168,8 +162,8 @@ export async function GET(req: Request) {
         return NextResponse.redirect(new URL('/dashboard', req.url));
       }
 
-      // Check if slug is already taken
-      const { data: existingRestaurant } = await supabase
+      // Check if slug is already taken (using admin client for speed)
+      const { data: existingRestaurant } = await adminClient
         .from('restaurants')
         .select('id')
         .eq('slug', slug)
@@ -180,11 +174,11 @@ export async function GET(req: Request) {
         return NextResponse.redirect(new URL('/checkout?error=slug_taken', req.url));
       }
 
-      // Create restaurant
+      // Create restaurant immediately (using admin client for speed)
       const expiresAt = new Date();
       expiresAt.setMonth(expiresAt.getMonth() + 1);
 
-      const { data: restaurant, error: restaurantError } = await supabase
+      const { data: restaurant, error: restaurantError } = await adminClient
         .from('restaurants')
         .insert({
           name: restaurantName,
@@ -205,8 +199,8 @@ export async function GET(req: Request) {
         return NextResponse.redirect(errorUrl);
       }
 
-      // Link restaurant to user
-      const { error: userUpdateError } = await supabase
+      // Link restaurant to user immediately (using admin client for speed)
+      const { error: userUpdateError } = await adminClient
         .from('users')
         .update({ restaurant_id: restaurant.id })
         .eq('id', userId);
@@ -214,7 +208,7 @@ export async function GET(req: Request) {
       if (userUpdateError) {
         console.error('Error linking restaurant to user:', userUpdateError);
         // Clean up restaurant if user update fails
-        await supabase.from('restaurants').delete().eq('id', restaurant.id);
+        await adminClient.from('restaurants').delete().eq('id', restaurant.id);
         return NextResponse.redirect(new URL('/checkout?error=link_failed', req.url));
       }
 
@@ -225,7 +219,7 @@ export async function GET(req: Request) {
 
       // Clean up any pending restaurant record
       try {
-        await supabase.from('pending_restaurants' as any).delete().eq('tx_ref', txRef);
+        await adminClient.from('pending_restaurants' as any).delete().eq('tx_ref', txRef);
       } catch (error) {
         // Non-critical, just log
         console.log('Could not clean up pending restaurant (non-critical):', error);
