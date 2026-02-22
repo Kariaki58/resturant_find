@@ -75,3 +75,81 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Print Styles */
+@media print {
+  @page {
+    size: A4;
+    margin: 1cm;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Hide navigation, buttons, and non-essential elements */
+  nav,
+  header:not(.print-show),
+  button:not(.print-show),
+  .print-hide,
+  [class*="sidebar"],
+  [class*="Sidebar"],
+  footer,
+  a[href]:not(.print-show),
+  [class*="print:hidden"] {
+    display: none !important;
+  }
+
+  /* Ensure print elements are visible */
+  .print-show,
+  [class*="print:block"] {
+    display: block !important;
+  }
+
+  /* Handle Tailwind print: classes */
+  [class*="print:"] {
+    /* These will be handled by Tailwind if print variant is enabled */
+  }
+
+  /* Optimize card styling for print */
+  .card,
+  [class*="Card"] {
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb !important;
+    page-break-inside: avoid;
+  }
+
+  /* Prevent page breaks inside important sections */
+  .print\:avoid-break {
+    page-break-inside: avoid;
+  }
+
+  /* Ensure proper spacing */
+  .print\:space-y-4 > * + * {
+    margin-top: 1rem;
+  }
+
+  /* Hide images that shouldn't print */
+  img:not([class*="print"]) {
+    display: none;
+  }
+
+  /* Optimize text colors for print */
+  .text-muted-foreground {
+    color: #6b7280 !important;
+  }
+
+  /* Remove background colors that don't print well */
+  .bg-primary\/10,
+  .bg-blue-50,
+  .bg-muted {
+    background: #f9fafb !important;
+  }
+}

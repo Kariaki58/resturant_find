@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ShoppingBag, Filter, Search, CreditCard, Clock } from 'lucide-react';
+import { useEffect, useState, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { ShoppingBag, Filter, Search, CreditCard, Clock, Plus, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -28,7 +28,7 @@ interface Order {
   customer?: { full_name: string; email: string } | null;
 }
 
-export default function OrdersPage() {
+function OrdersContent() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -36,9 +36,20 @@ export default function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [hasRestaurant, setHasRestaurant] = useState<boolean | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
+  const restaurantIdRef = useRef<string | null>(null);
 
   useEffect(() => {
+    // Check if we need to refresh (coming from create page)
+    const refresh = searchParams.get('refresh');
+    if (refresh === 'true') {
+      // Remove the refresh parameter from URL
+      router.replace('/dashboard/orders', { scroll: false });
+    }
+
+    let channel: any = null;
+
     const fetchOrders = async () => {
       try {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -77,7 +88,6 @@ export default function OrdersPage() {
 
         if (userError) {
           console.error('Error fetching user data after retries:', userError);
-          // Don't redirect - show error state instead
           setLoading(false);
           return;
         }
@@ -85,8 +95,6 @@ export default function OrdersPage() {
         if (!userData?.restaurant_id) {
           console.log('No restaurant_id found');
           setHasRestaurant(false);
-          // Only redirect if we're sure the user doesn't have a restaurant
-          // Give it a moment in case data is still syncing
           setTimeout(() => {
             if (!userData?.restaurant_id) {
               router.push('/restaurants');
@@ -95,6 +103,7 @@ export default function OrdersPage() {
           return;
         }
 
+        restaurantIdRef.current = userData.restaurant_id;
         setHasRestaurant(true);
 
         let query = supabase
@@ -104,7 +113,7 @@ export default function OrdersPage() {
             table:tables(table_number),
             customer:users!orders_customer_id_fkey(full_name, email)
           `)
-          .eq('restaurant_id', userData.restaurant_id)
+          .eq('restaurant_id', restaurantIdRef.current)
           .order('created_at', { ascending: false });
 
         if (statusFilter !== 'all') {
@@ -119,7 +128,6 @@ export default function OrdersPage() {
 
         if (ordersError) {
           console.error('Error fetching orders:', ordersError);
-          // Don't redirect on error, just show empty state
           setOrders([]);
         } else if (ordersData) {
           let filtered = ordersData as Order[];
@@ -128,7 +136,8 @@ export default function OrdersPage() {
             filtered = filtered.filter(order => 
               order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
               order.customer?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              order.customer?.email?.toLowerCase().includes(searchQuery.toLowerCase())
+              order.customer?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              order.buyer_transfer_name?.toLowerCase().includes(searchQuery.toLowerCase())
             );
           }
 
@@ -138,30 +147,54 @@ export default function OrdersPage() {
         }
       } catch (error) {
         console.error('Error fetching orders:', error);
-        // Don't redirect on error, just show empty state
         setOrders([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchOrders();
+    fetchOrders().then(() => {
+      // Set up real-time subscription after initial fetch
+      if (restaurantIdRef.current) {
+        const restaurantId = restaurantIdRef.current;
+        channel = supabase
+          .channel(`orders-updates-${restaurantId}`)
+          .on('postgres_changes', 
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'orders'
+            },
+            (payload) => {
+              // Only process changes for this restaurant
+              if (payload.new && (payload.new as any).restaurant_id === restaurantId) {
+                console.log('Order change detected:', payload);
+                // Refetch orders when any change occurs
+                fetchOrders();
+              } else if (payload.old && (payload.old as any).restaurant_id === restaurantId) {
+                // Handle deletes/updates
+                console.log('Order change detected:', payload);
+                fetchOrders();
+              }
+            }
+          )
+          .subscribe();
+      }
+    });
 
-    // Real-time subscription
-    const channel = supabase
-      .channel('orders-updates')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'orders' },
-        () => {
-          fetchOrders();
-        }
-      )
-      .subscribe();
+    // Listen for focus event to refresh when returning to page
+    const handleFocus = () => {
+      fetchOrders();
+    };
+    window.addEventListener('focus', handleFocus);
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+      window.removeEventListener('focus', handleFocus);
     };
-  }, [router, supabase, statusFilter, typeFilter, searchQuery]);
+  }, [router, supabase, statusFilter, typeFilter, searchQuery, searchParams]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
@@ -199,6 +232,7 @@ export default function OrdersPage() {
         .eq('id', orderId);
 
       if (error) throw error;
+      // Real-time subscription will automatically refresh the list
     } catch (error) {
       console.error('Error updating order status:', error);
     }
@@ -235,6 +269,12 @@ export default function OrdersPage() {
           <h1 className="text-3xl font-bold font-headline">Orders</h1>
           <p className="text-muted-foreground">Manage and track all your orders</p>
         </div>
+        <Button asChild>
+          <Link href="/dashboard/orders/create">
+            <Plus className="mr-2 h-4 w-4" />
+            Create Order
+          </Link>
+        </Button>
       </div>
 
       {/* Filters */}
@@ -323,9 +363,11 @@ export default function OrdersPage() {
                         {order.table && (
                           <p>Table {order.table.table_number}</p>
                         )}
-                        {order.customer && (
+                        {order.customer ? (
                           <p>{order.customer.full_name} • {order.customer.email}</p>
-                        )}
+                        ) : order.buyer_transfer_name ? (
+                          <p className="font-medium">{order.buyer_transfer_name} (Walk-in)</p>
+                        ) : null}
                         <p className="capitalize">
                           {order.delivery_method?.replace('_', ' ') || 'Pickup'}
                         </p>
@@ -343,6 +385,16 @@ export default function OrdersPage() {
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" asChild>
                         <Link href={`/dashboard/orders/${order.id}`}>View Details</Link>
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        asChild
+                        title="Download Receipt"
+                      >
+                        <Link href={`/dashboard/orders/${order.id}`}>
+                          <Download className="h-4 w-4" />
+                        </Link>
                       </Button>
                       {order.status === 'awaiting_confirmation' && (
                         <>
@@ -397,6 +449,23 @@ export default function OrdersPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function OrdersPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6 w-full">
+        <Skeleton className="h-12 w-64" />
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-24 w-full" />
+          ))}
+        </div>
+      </div>
+    }>
+      <OrdersContent />
+    </Suspense>
   );
 }
 

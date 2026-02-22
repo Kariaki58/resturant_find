@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react';
 import { use } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { CheckCircle2, ShoppingBag, Clock, ArrowLeft } from 'lucide-react';
+import { CheckCircle2, ShoppingBag, Clock, ArrowLeft, Download, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { generateReceiptPDF } from '@/lib/utils/receipt-pdf';
+import { useToast } from '@/hooks/use-toast';
 
 export default function OrderSuccessPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -17,7 +19,9 @@ export default function OrderSuccessPage({ params }: { params: Promise<{ slug: s
   const orderId = searchParams.get('orderId');
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
   const supabase = createClient();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (orderId) {
@@ -33,7 +37,12 @@ export default function OrderSuccessPage({ params }: { params: Promise<{ slug: s
         .from('orders')
         .select(`
           *,
-          restaurant:restaurants(name, slug)
+          restaurant:restaurants(name, slug),
+          order_items(
+            quantity,
+            price,
+            menu_item:menu_items(name)
+          )
         `)
         .eq('id', orderId!)
         .maybeSingle();
@@ -52,6 +61,48 @@ export default function OrderSuccessPage({ params }: { params: Promise<{ slug: s
       style: 'currency',
       currency: 'NGN',
     }).format(amount);
+  };
+
+  const handleDownloadReceipt = () => {
+    if (!order || !order.restaurant) return;
+
+    generateReceiptPDF({
+      restaurantName: order.restaurant.name,
+      orderId: order.id,
+      orderDate: order.created_at,
+      orderType: order.order_type,
+      customerName: order.buyer_transfer_name || undefined,
+      paymentReference: order.payment_reference || undefined,
+      orderItems: (order.order_items || []).map((item: any) => ({
+        quantity: item.quantity,
+        price: item.price,
+        menu_item: {
+          name: item.menu_item.name,
+        },
+      })),
+      totalAmount: order.total_amount,
+      note: order.note || undefined,
+    });
+  };
+
+  const handleCopyTrackingNumber = async () => {
+    if (!orderId) return;
+    
+    try {
+      await navigator.clipboard.writeText(orderId);
+      setCopied(true);
+      toast({
+        title: 'Copied!',
+        description: 'Tracking number copied to clipboard',
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to copy tracking number',
+        variant: 'destructive',
+      });
+    }
   };
 
   if (loading) {
@@ -100,8 +151,23 @@ export default function OrderSuccessPage({ params }: { params: Promise<{ slug: s
 
               <div className="bg-muted/50 rounded-xl p-6 space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Order ID</span>
-                  <span className="font-mono font-bold">{order.id.slice(0, 8).toUpperCase()}</span>
+                  <span className="text-muted-foreground">Tracking Number</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold">{order.id.slice(0, 8).toUpperCase()}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCopyTrackingNumber}
+                      className="h-8 w-8 p-0"
+                      title="Copy tracking number"
+                    >
+                      {copied ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Total Amount</span>
@@ -130,6 +196,10 @@ export default function OrderSuccessPage({ params }: { params: Promise<{ slug: s
                 </div>
 
                   <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                    <Button variant="outline" className="flex-1" onClick={handleDownloadReceipt}>
+                      <Download className="mr-2 h-4 w-4" />
+                      Download Receipt
+                    </Button>
                     <Button variant="outline" className="flex-1" asChild>
                       <Link href={`/menu/${order.restaurant?.slug || slug}/track/${order.id}`}>
                         <Clock className="mr-2 h-4 w-4" />

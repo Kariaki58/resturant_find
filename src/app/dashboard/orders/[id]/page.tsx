@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, CheckCircle2, XCircle, Printer, MapPin, Phone, User, Calendar, CreditCard, Truck, Store, Utensils } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, XCircle, Download, MapPin, Phone, User, Calendar, CreditCard, Truck, Store, Utensils } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from 'next/link';
 import { PaymentProofAnalyzer } from '@/components/orders/PaymentProofAnalyzer';
 import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
+import { generateReceiptPDF } from '@/lib/utils/receipt-pdf';
 
 interface OrderItem {
   id: string;
@@ -45,6 +46,12 @@ interface Order {
   order_items: OrderItem[];
 }
 
+interface Restaurant {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export default function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const id = resolvedParams.id;
@@ -52,12 +59,25 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const { toast } = useToast();
   const supabase = createClient();
   const [order, setOrder] = useState<Order | null>(null);
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchOrder();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // Auto-print if print query parameter is present
+  useEffect(() => {
+    if (order && !loading) {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('print') === 'true') {
+        setTimeout(() => {
+          window.print();
+        }, 500);
+      }
+    }
+  }, [order, loading]);
 
   const fetchOrder = async () => {
     try {
@@ -117,6 +137,17 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       }
 
       setOrder(orderData as Order);
+
+      // Fetch restaurant information
+      const { data: restaurantData } = await supabase
+        .from('restaurants')
+        .select('id, name, slug')
+        .eq('id', restaurantId)
+        .single();
+
+      if (restaurantData) {
+        setRestaurant(restaurantData as Restaurant);
+      }
     } catch (error: any) {
       console.error('Error fetching order:', error);
       toast({
@@ -240,6 +271,31 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     }
   };
 
+  const handleDownloadReceipt = () => {
+    if (!order || !restaurant) return;
+
+    generateReceiptPDF({
+      restaurantName: restaurant.name,
+      orderId: order.id,
+      orderDate: order.created_at,
+      tableNumber: order.table?.table_number,
+      orderType: order.order_type,
+      customerName: order.customer?.full_name || order.buyer_transfer_name || undefined,
+      customerEmail: order.customer?.email || undefined,
+      customerPhone: order.customer?.phone || undefined,
+      paymentReference: order.payment_reference || undefined,
+      orderItems: order.order_items.map(item => ({
+        quantity: item.quantity,
+        price: item.price,
+        menu_item: {
+          name: item.menu_item.name,
+        },
+      })),
+      totalAmount: order.total_amount,
+      note: order.note || undefined,
+    });
+  };
+
   if (loading) {
     return (
       <div className="p-4 sm:p-6 lg:p-8 space-y-8 w-full">
@@ -274,64 +330,101 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-8 w-full">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild className="rounded-full">
-          <Link href="/dashboard/orders">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold font-headline flex items-center gap-3">
-            Order #{order.id.slice(0, 8).toUpperCase()}
-            <Badge className={`${getStatusColor(order.status)} text-white`}>
-              {order.status.replace('_', ' ')}
-            </Badge>
-          </h1>
-          <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
-            <Calendar className="w-4 h-4" /> {new Date(order.created_at).toLocaleString()}
-          </p>
-        </div>
-        <div className="ml-auto flex gap-2">
-          <Button variant="outline" className="rounded-full">
-            <Printer className="mr-2 w-4 h-4" /> Receipt
-          </Button>
+    <>
+      {/* Print-only receipt header */}
+      <div className="hidden print:block print:mb-8">
+        <div className="text-center border-b-2 border-gray-800 pb-4 mb-6">
+          <h1 className="text-3xl font-bold mb-2">{restaurant?.name || 'Restaurant'}</h1>
+          <p className="text-sm text-gray-600">Order Receipt</p>
         </div>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-8">
-        <div className="md:col-span-2 space-y-8">
+      <div className="p-4 sm:p-6 lg:p-8 space-y-8 w-full print:p-0 print:space-y-4">
+        <div className="flex items-center gap-4 print:hidden">
+          <Button variant="ghost" size="icon" asChild className="rounded-full">
+            <Link href="/dashboard/orders">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold font-headline flex items-center gap-3">
+              Order #{order.id.slice(0, 8).toUpperCase()}
+              <Badge className={`${getStatusColor(order.status)} text-white`}>
+                {order.status.replace('_', ' ')}
+              </Badge>
+            </h1>
+            <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+              <Calendar className="w-4 h-4" /> {new Date(order.created_at).toLocaleString()}
+            </p>
+          </div>
+          <div className="ml-auto flex gap-2">
+            <Button 
+              variant="outline" 
+              className="rounded-full" 
+              onClick={handleDownloadReceipt}
+            >
+              <Download className="mr-2 w-4 h-4" /> Download Receipt
+            </Button>
+          </div>
+        </div>
+
+      <div className="grid md:grid-cols-3 gap-8 print:grid-cols-1 print:gap-0">
+        <div className="md:col-span-2 space-y-8 print:space-y-4">
+          {/* Print Order Info Header */}
+          <div className="hidden print:block print:mb-4 print:pb-4 print:border-b print:border-gray-300">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-gray-600 mb-1">Order Number:</p>
+                <p className="font-bold">#{order.id.slice(0, 8).toUpperCase()}</p>
+              </div>
+              <div>
+                <p className="text-gray-600 mb-1">Date & Time:</p>
+                <p className="font-bold">{new Date(order.created_at).toLocaleString()}</p>
+              </div>
+              {order.table && (
+                <div>
+                  <p className="text-gray-600 mb-1">Table:</p>
+                  <p className="font-bold">Table {order.table.table_number}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-gray-600 mb-1">Order Type:</p>
+                <p className="font-bold capitalize">{order.order_type.replace('_', ' ')}</p>
+              </div>
+            </div>
+          </div>
+
           {/* Order Items */}
-          <Card className="border-none shadow-sm">
-            <CardHeader>
-              <CardTitle>Order Content</CardTitle>
+          <Card className="border-none shadow-sm print:shadow-none print:border print:border-gray-300">
+            <CardHeader className="print:pb-2 print:border-b print:border-gray-300">
+              <CardTitle className="print:text-lg">Order Items</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="divide-y">
+            <CardContent className="print:p-4">
+              <div className="divide-y print:divide-y print:divide-gray-300">
                 {order.order_items.map((item) => (
-                  <div key={item.id} className="py-4 flex justify-between items-center first:pt-0 last:pb-0">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center font-bold text-primary text-sm">
+                  <div key={item.id} className="py-4 flex justify-between items-center first:pt-0 last:pb-0 print:py-2">
+                    <div className="flex items-center gap-4 print:gap-2">
+                      <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center font-bold text-primary text-sm print:w-8 print:h-8 print:text-xs">
                         {item.quantity}x
                       </div>
                       <div>
-                        <p className="font-bold">{item.menu_item.name}</p>
-                        <p className="text-xs text-muted-foreground">{formatCurrency(item.price)} each</p>
+                        <p className="font-bold print:text-sm">{item.menu_item.name}</p>
+                        <p className="text-xs text-muted-foreground print:hidden">{formatCurrency(item.price)} each</p>
                       </div>
                     </div>
-                    <span className="font-bold">{formatCurrency(item.quantity * item.price)}</span>
+                    <span className="font-bold print:text-sm">{formatCurrency(item.quantity * item.price)}</span>
                   </div>
                 ))}
               </div>
               {order.note && (
-                <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-sm font-medium text-blue-900 mb-1">Special Instructions</p>
-                  <p className="text-sm text-blue-700">{order.note}</p>
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200 print:mt-4 print:p-3 print:bg-gray-50 print:border-gray-300">
+                  <p className="text-sm font-medium text-blue-900 mb-1 print:text-gray-800 print:text-xs">Special Instructions</p>
+                  <p className="text-sm text-blue-700 print:text-gray-700 print:text-xs">{order.note}</p>
                 </div>
               )}
-              <div className="mt-8 pt-6 border-t space-y-2">
-                <div className="flex justify-between text-xl font-bold text-primary pt-2">
-                  <span>Total Amount</span>
+              <div className="mt-8 pt-6 border-t space-y-2 print:mt-4 print:pt-4 print:border-t-2 print:border-gray-800">
+                <div className="flex justify-between text-xl font-bold text-primary pt-2 print:text-lg print:text-black">
+                  <span>TOTAL</span>
                   <span>{formatCurrency(order.total_amount)}</span>
                 </div>
               </div>
@@ -340,7 +433,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
           {/* Payment Proof Image */}
           {order.payment_proof_url && (
-            <Card className="border-none shadow-sm overflow-hidden">
+            <Card className="border-none shadow-sm overflow-hidden print:hidden">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>Payment Proof</CardTitle>
@@ -362,10 +455,52 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               </CardContent>
             </Card>
           )}
+
+          {/* Print Customer Info */}
+          <div className="hidden print:block print:mt-4 print:pt-4 print:border-t print:border-gray-300">
+            <h3 className="font-bold text-lg mb-3">Customer Information</h3>
+            <div className="space-y-2 text-sm">
+              {order.customer ? (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Name:</span>
+                    <span className="font-bold">{order.customer.full_name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Email:</span>
+                    <span className="font-bold">{order.customer.email}</span>
+                  </div>
+                  {order.customer.phone && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Phone:</span>
+                      <span className="font-bold">{order.customer.phone}</span>
+                    </div>
+                  )}
+                </>
+              ) : order.buyer_transfer_name ? (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Name:</span>
+                  <span className="font-bold">{order.buyer_transfer_name}</span>
+                </div>
+              ) : null}
+              {order.payment_reference && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Payment Ref:</span>
+                  <span className="font-bold font-mono">{order.payment_reference}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Print Footer */}
+          <div className="hidden print:block print:mt-8 print:pt-4 print:border-t print:border-gray-300 print:text-center print:text-xs print:text-gray-600">
+            <p>Thank you for your order!</p>
+            <p className="mt-2">Generated on {new Date().toLocaleString()}</p>
+          </div>
         </div>
 
         {/* Sidebar info */}
-        <div className="space-y-6">
+        <div className="space-y-6 print:hidden">
           {/* AI Analyzer Tool */}
           {order.payment_proof_url && (
             <PaymentProofAnalyzer 
@@ -380,7 +515,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               <CardTitle className="text-base">Customer Info</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {order.customer && (
+              {order.customer ? (
                 <>
                   <div className="flex items-start gap-3">
                     <User className="w-4 h-4 mt-1 text-muted-foreground" />
@@ -403,17 +538,25 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                       <p className="text-xs text-muted-foreground">Email</p>
                     </div>
                   </div>
+                  {order.buyer_transfer_name && order.buyer_transfer_name !== order.customer.full_name && (
+                    <div className="flex items-start gap-3">
+                      <CreditCard className="w-4 h-4 mt-1 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-bold text-primary">{order.buyer_transfer_name}</p>
+                        <p className="text-xs text-muted-foreground">Sender Name on Transfer</p>
+                      </div>
+                    </div>
+                  )}
                 </>
-              )}
-              {order.buyer_transfer_name && (
+              ) : order.buyer_transfer_name ? (
                 <div className="flex items-start gap-3">
-                  <CreditCard className="w-4 h-4 mt-1 text-muted-foreground" />
+                  <User className="w-4 h-4 mt-1 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-bold text-primary">{order.buyer_transfer_name}</p>
-                    <p className="text-xs text-muted-foreground">Sender Name on Transfer</p>
+                    <p className="text-xs text-muted-foreground">Customer Name (Walk-in Order)</p>
                   </div>
                 </div>
-              )}
+              ) : null}
               {order.payment_reference && (
                 <div className="flex items-start gap-3">
                   <CreditCard className="w-4 h-4 mt-1 text-muted-foreground" />
@@ -546,5 +689,6 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
     </div>
+    </>
   );
 }

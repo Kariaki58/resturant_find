@@ -3,13 +3,15 @@
 import { useEffect, useState } from 'react';
 import { use } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { CheckCircle2, Clock, Package, Truck, Store, MapPin, Phone, Mail, ArrowLeft, Utensils } from 'lucide-react';
+import { CheckCircle2, Clock, Package, Truck, Store, MapPin, Phone, Mail, ArrowLeft, Utensils, Download, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { generateReceiptPDF } from '@/lib/utils/receipt-pdf';
+import { useToast } from '@/hooks/use-toast';
 
 interface Order {
   id: string;
@@ -37,7 +39,9 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ slug: 
   const searchParams = useSearchParams();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
   const supabase = createClient();
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchOrder();
@@ -161,22 +165,43 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ slug: 
         <Card className="border-none shadow-sm">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Order #{order.id.slice(0, 8).toUpperCase()}</CardTitle>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <CardTitle>Tracking Number: {order.id.slice(0, 8).toUpperCase()}</CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCopyTrackingNumber}
+                    className="h-8 w-8 p-0"
+                    title="Copy tracking number"
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
                 <CardDescription>
                   Placed on {new Date(order.created_at).toLocaleString()}
                 </CardDescription>
               </div>
-              <Badge className={`${
-                order.status === 'awaiting_confirmation' ? 'bg-orange-500' :
-                order.status === 'confirmed' ? 'bg-blue-500' :
-                order.status === 'preparing' ? 'bg-purple-500' :
-                order.status === 'ready' ? 'bg-green-500' :
-                order.status === 'completed' ? 'bg-green-600' :
-                'bg-gray-500'
-              } text-white`}>
-                {order.status.replace('_', ' ').toUpperCase()}
-              </Badge>
+              <div className="flex items-center gap-3">
+                <Button variant="outline" onClick={handleDownloadReceipt}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Receipt
+                </Button>
+                <Badge className={`${
+                  order.status === 'awaiting_confirmation' ? 'bg-orange-500' :
+                  order.status === 'confirmed' ? 'bg-blue-500' :
+                  order.status === 'preparing' ? 'bg-purple-500' :
+                  order.status === 'ready' ? 'bg-green-500' :
+                  order.status === 'completed' ? 'bg-green-600' :
+                  'bg-gray-500'
+                } text-white`}>
+                  {order.status.replace('_', ' ').toUpperCase()}
+                </Badge>
+              </div>
             </div>
           </CardHeader>
         </Card>

@@ -15,10 +15,13 @@ import {
   SidebarFooter,
   useSidebar
 } from "@/components/ui/sidebar";
-import { Utensils, ShoppingBag, LayoutDashboard, Settings, LogOut, Smartphone, User, CreditCard } from 'lucide-react';
+import { Utensils, ShoppingBag, LayoutDashboard, Settings, LogOut, Smartphone, User, CreditCard, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { usePathname } from 'next/navigation';
 
 function SidebarHeaderLink({ restaurantName }: { restaurantName: string | null }) {
   const { setOpenMobile } = useSidebar();
@@ -71,9 +74,15 @@ function NavItems() {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [userInfo, setUserInfo] = useState<{ name: string; email: string } | null>(null);
   const [restaurantName, setRestaurantName] = useState<string | null>(null);
-  const router = useRouter();
+  const [subscriptionExpired, setSubscriptionExpired] = useState(false);
+  const [loadingSubscription, setLoadingSubscription] = useState(true);
+  // const router = useRouter();
+  const pathname = usePathname();
   const { toast } = useToast();
   const supabase = createClient();
+  
+  // Check if current path is billing page (should be accessible even if expired)
+  const isBillingPage = pathname === '/dashboard/billing';
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -94,21 +103,37 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               email: typedUserData.email,
             });
 
-            // Fetch restaurant name if user has a restaurant
+            // Fetch restaurant name and subscription status if user has a restaurant
             if (typedUserData.restaurant_id) {
               const { data: restaurant } = await supabase
                 .from('restaurants')
-                .select('name')
+                .select('name, subscription_status, subscription_expires_at')
                 .eq('id', typedUserData.restaurant_id)
                 .maybeSingle();
               
               if (restaurant) {
-                const typedRestaurant = restaurant as { name: string } | null;
+                const typedRestaurant = restaurant as { 
+                  name: string; 
+                  subscription_status: string; 
+                  subscription_expires_at: string | null 
+                } | null;
+                
                 if (typedRestaurant) {
                   setRestaurantName(typedRestaurant.name);
+                  
+                  // Check if subscription is expired
+                  const isExpired = () => {
+                    if (!typedRestaurant.subscription_expires_at) return false;
+                    return new Date(typedRestaurant.subscription_expires_at) < new Date();
+                  };
+                  
+                  const expired = isExpired() || typedRestaurant.subscription_status === 'expired';
+                  setSubscriptionExpired(expired);
                 }
               }
             }
+            
+            setLoadingSubscription(false);
           }
         } else {
           setUserInfo({
@@ -150,8 +175,37 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   };
 
+  // Show blocker if subscription expired and not on billing page
+  const showBlocker = subscriptionExpired && !isBillingPage && !loadingSubscription;
+
   return (
     <SidebarProvider defaultOpen={false}>
+      <Dialog open={showBlocker} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              Subscription Expired
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              Your subscription has expired. Please renew your subscription to continue using the service.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 pt-4">
+            <Button asChild className="w-full">
+              <Link href="/dashboard/billing">Go to Billing & Renew</Link>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={handleLogout}
+            >
+              Logout
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
       <div className="flex min-h-screen w-full bg-background">
         <Sidebar variant="sidebar" collapsible="offcanvas" className="border-r border-border/50">
           <SidebarHeader className="h-20 flex items-center px-6">
@@ -195,7 +249,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </header>
           <main className="flex-1 overflow-auto w-full">
             <div className="container mx-auto max-w-7xl">
-              {children}
+              {showBlocker ? (
+                <div className="flex items-center justify-center min-h-[60vh]">
+                  <div className="text-center space-y-4">
+                    <AlertCircle className="h-16 w-16 text-red-500 mx-auto" />
+                    <h2 className="text-2xl font-bold">Subscription Expired</h2>
+                    <p className="text-muted-foreground">
+                      Your subscription has expired. Please renew to continue using the service.
+                    </p>
+                    <Button asChild>
+                      <Link href="/dashboard/billing">Renew Subscription</Link>
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                children
+              )}
             </div>
           </main>
         </SidebarInset>
