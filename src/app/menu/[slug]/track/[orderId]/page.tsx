@@ -191,16 +191,16 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ slug: 
                   <Download className="mr-2 h-4 w-4" />
                   Download Receipt
                 </Button>
-                <Badge className={`${
-                  order.status === 'awaiting_confirmation' ? 'bg-orange-500' :
-                  order.status === 'confirmed' ? 'bg-blue-500' :
-                  order.status === 'preparing' ? 'bg-purple-500' :
-                  order.status === 'ready' ? 'bg-green-500' :
-                  order.status === 'completed' ? 'bg-green-600' :
-                  'bg-gray-500'
-                } text-white`}>
-                  {order.status.replace('_', ' ').toUpperCase()}
-                </Badge>
+              <Badge className={`${
+                order.status === 'awaiting_confirmation' ? 'bg-orange-500' :
+                order.status === 'confirmed' ? 'bg-blue-500' :
+                order.status === 'preparing' ? 'bg-purple-500' :
+                order.status === 'ready' ? 'bg-green-500' :
+                order.status === 'completed' ? 'bg-green-600' :
+                'bg-gray-500'
+              } text-white`}>
+                {order.status.replace('_', ' ').toUpperCase()}
+              </Badge>
               </div>
             </div>
           </CardHeader>

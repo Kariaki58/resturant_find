@@ -170,15 +170,15 @@ function OrdersContent() {
               if (payload.new && (payload.new as any).restaurant_id === restaurantId) {
                 console.log('Order change detected:', payload);
                 // Refetch orders when any change occurs
-                fetchOrders();
+    fetchOrders();
               } else if (payload.old && (payload.old as any).restaurant_id === restaurantId) {
                 // Handle deletes/updates
                 console.log('Order change detected:', payload);
-                fetchOrders();
+          fetchOrders();
               }
-            }
-          )
-          .subscribe();
+        }
+      )
+      .subscribe();
       }
     });
 
@@ -190,7 +190,7 @@ function OrdersContent() {
 
     return () => {
       if (channel) {
-        supabase.removeChannel(channel);
+      supabase.removeChannel(channel);
       }
       window.removeEventListener('focus', handleFocus);
     };

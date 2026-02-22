@@ -122,6 +122,10 @@ export default function Home() {
       <footer className="py-12 px-6 border-t bg-white">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
           <Logo size="sm" />
+          <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
+            <Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
+          </div>
           <p className="text-sm text-muted-foreground">© 2024 resturantme Technologies. Built for Nigeria.</p>
         </div>
       </footer>

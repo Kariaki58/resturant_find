@@ -153,7 +153,7 @@ export default function OrderSuccessPage({ params }: { params: Promise<{ slug: s
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Tracking Number</span>
                   <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold">{order.id.slice(0, 8).toUpperCase()}</span>
+                  <span className="font-mono font-bold">{order.id.slice(0, 8).toUpperCase()}</span>
                     <Button
                       variant="ghost"
                       size="sm"

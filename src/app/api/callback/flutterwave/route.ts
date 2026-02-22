@@ -107,11 +107,11 @@ export async function GET(req: Request) {
         }
         
         const { data: userData } = await adminClient
-          .from('users')
-          .select('id, restaurant_id')
-          .eq('id', userId)
-          .maybeSingle();
-        
+        .from('users')
+        .select('id, restaurant_id')
+        .eq('id', userId)
+        .maybeSingle();
+
         if (userData) {
           existingUser = userData;
           break;
@@ -152,7 +152,7 @@ export async function GET(req: Request) {
           }
         } catch (fallbackError) {
           console.error('Error creating user:', fallbackError);
-          return NextResponse.redirect(new URL('/checkout?error=user_not_found', req.url));
+        return NextResponse.redirect(new URL('/checkout?error=user_not_found', req.url));
         }
       }
 

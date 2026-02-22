@@ -341,32 +341,32 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
       <div className="p-4 sm:p-6 lg:p-8 space-y-8 w-full print:p-0 print:space-y-4">
         <div className="flex items-center gap-4 print:hidden">
-          <Button variant="ghost" size="icon" asChild className="rounded-full">
-            <Link href="/dashboard/orders">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold font-headline flex items-center gap-3">
-              Order #{order.id.slice(0, 8).toUpperCase()}
-              <Badge className={`${getStatusColor(order.status)} text-white`}>
-                {order.status.replace('_', ' ')}
-              </Badge>
-            </h1>
-            <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
-              <Calendar className="w-4 h-4" /> {new Date(order.created_at).toLocaleString()}
-            </p>
-          </div>
-          <div className="ml-auto flex gap-2">
+        <Button variant="ghost" size="icon" asChild className="rounded-full">
+          <Link href="/dashboard/orders">
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold font-headline flex items-center gap-3">
+            Order #{order.id.slice(0, 8).toUpperCase()}
+            <Badge className={`${getStatusColor(order.status)} text-white`}>
+              {order.status.replace('_', ' ')}
+            </Badge>
+          </h1>
+          <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+            <Calendar className="w-4 h-4" /> {new Date(order.created_at).toLocaleString()}
+          </p>
+        </div>
+        <div className="ml-auto flex gap-2">
             <Button 
               variant="outline" 
               className="rounded-full" 
               onClick={handleDownloadReceipt}
             >
               <Download className="mr-2 w-4 h-4" /> Download Receipt
-            </Button>
-          </div>
+          </Button>
         </div>
+      </div>
 
       <div className="grid md:grid-cols-3 gap-8 print:grid-cols-1 print:gap-0">
         <div className="md:col-span-2 space-y-8 print:space-y-4">
@@ -539,14 +539,14 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                     </div>
                   </div>
                   {order.buyer_transfer_name && order.buyer_transfer_name !== order.customer.full_name && (
-                    <div className="flex items-start gap-3">
-                      <CreditCard className="w-4 h-4 mt-1 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-bold text-primary">{order.buyer_transfer_name}</p>
-                        <p className="text-xs text-muted-foreground">Sender Name on Transfer</p>
-                      </div>
-                    </div>
-                  )}
+                <div className="flex items-start gap-3">
+                  <CreditCard className="w-4 h-4 mt-1 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-bold text-primary">{order.buyer_transfer_name}</p>
+                    <p className="text-xs text-muted-foreground">Sender Name on Transfer</p>
+                  </div>
+                </div>
+              )}
                 </>
               ) : order.buyer_transfer_name ? (
                 <div className="flex items-start gap-3">
