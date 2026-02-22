@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function GET(req: Request) {
@@ -8,188 +7,122 @@ export async function GET(req: Request) {
   const txRef = searchParams.get('tx_ref');
   const transactionId = searchParams.get('transaction_id');
 
-  console.log('Flutterwave callback received:', { status, txRef, transactionId });
+  console.log('[flutterwave-callback] Received:', { status, txRef, transactionId });
 
-  // Flutterwave can return 'successful' or 'completed' for successful payments
   if ((status === 'successful' || status === 'completed') && txRef) {
     try {
-
-      // Extract user_id from tx_ref (format: restaurant-{user_id}-{timestamp})
-      const txRefParts = txRef.split('-');
-      if (txRefParts.length < 3) {
-        console.error('Invalid tx_ref format:', txRef);
+      // ── 1. Parse user ID from tx_ref ─────────────────────────────────────
+      if (!txRef.startsWith('restaurant-')) {
+        console.error('[flutterwave-callback] Invalid tx_ref format:', txRef);
         return NextResponse.redirect(new URL('/checkout?error=invalid_transaction', req.url));
       }
-      const userId = txRefParts[1];
 
-      // Create admin client early for faster operations (bypasses RLS)
+      // tx_ref format: restaurant-{UUID}-{timestamp}
+      const withoutPrefix = txRef.substring(11); // remove "restaurant-"
+      const uuidMatch = withoutPrefix.match(
+        /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})-/
+      );
+
+      if (!uuidMatch) {
+        console.error('[flutterwave-callback] UUID parse failed:', txRef);
+        return NextResponse.redirect(new URL('/checkout?error=invalid_transaction', req.url));
+      }
+
+      const userId = uuidMatch[1];
       const adminClient = createAdminClient();
 
-      // Always verify the transaction with Flutterwave API
-      let transactionData = null;
-      
+      // ── 2. Verify payment with Flutterwave ───────────────────────────────
+      let transactionData: any = null;
+
       if (transactionId) {
         const verifyResponse = await fetch(
           `https://api.flutterwave.com/v3/transactions/${transactionId}/verify`,
           {
             headers: {
-              'Authorization': `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
+              Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
             },
           }
         );
 
         if (!verifyResponse.ok) {
-          console.error('Flutterwave verification request failed:', verifyResponse.status);
+          console.error('[flutterwave-callback] Verification request failed:', verifyResponse.status);
           return NextResponse.redirect(new URL('/checkout?error=payment_failed', req.url));
         }
 
         transactionData = await verifyResponse.json();
-        console.log('Flutterwave verification response:', transactionData);
+        console.log('[flutterwave-callback] Verification:', transactionData?.data?.status);
 
-        // Check if payment was successful
-        if (transactionData.status !== 'success' || transactionData.data?.status !== 'successful') {
-          console.error('Payment verification failed:', transactionData);
+        if (
+          transactionData.status !== 'success' ||
+          transactionData.data?.status !== 'successful'
+        ) {
           return NextResponse.redirect(new URL('/checkout?error=payment_failed', req.url));
         }
       }
 
-      // Get restaurant details from transaction meta or pending_restaurants table
+      // ── 3. Resolve restaurant details ────────────────────────────────────
       const meta = transactionData?.data?.meta || {};
-      let restaurantName = meta.restaurant_name;
-      let slug = meta.slug;
-      let bankName = meta.bank_name;
-      let accountNumber = meta.account_number;
-      let accountName = meta.account_name;
+      let restaurantName: string = meta.restaurant_name;
+      let slug: string = meta.slug;
+      let bankName: string = meta.bank_name;
+      let accountNumber: string = meta.account_number;
+      let accountName: string = meta.account_name;
 
-      // If meta is not available, retrieve from pending_restaurants table (fallback)
+      // Fallback: retrieve from pending_restaurants table if meta is missing
       if (!restaurantName || !slug) {
-        console.log('Meta not available in transaction, retrieving from pending_restaurants table');
-        try {
-          const { data: pendingData, error: pendingError } = await adminClient
-            .from('pending_restaurants' as any)
-            .select('*')
-            .eq('tx_ref', txRef)
-            .maybeSingle();
-
-          if (pendingError) {
-            console.error('Error fetching pending restaurant:', pendingError);
-          }
-
-          if (pendingData) {
-            restaurantName = (pendingData as any).restaurant_name;
-            slug = (pendingData as any).slug;
-            bankName = (pendingData as any).bank_name;
-            accountNumber = (pendingData as any).account_number;
-            accountName = (pendingData as any).account_name;
-
-            // Clean up pending record
-            await adminClient.from('pending_restaurants' as any).delete().eq('tx_ref', txRef);
-          }
-        } catch (error) {
-          console.error('Error retrieving from pending_restaurants:', error);
-        }
-      }
-
-      if (!restaurantName || !slug) {
-        console.error('Missing restaurant details. Meta:', meta);
-        console.log('Full transaction data:', JSON.stringify(transactionData, null, 2));
-        return NextResponse.redirect(new URL('/checkout?error=missing_data&tx_ref=' + txRef, req.url));
-      }
-
-      // Check if user exists (with retry for trigger timing)
-      let existingUser = null;
-      let attempts = 0;
-      const maxAttempts = 5; // Increased attempts
-      
-      while (attempts < maxAttempts && !existingUser) {
-        if (attempts > 0) {
-          await new Promise(resolve => setTimeout(resolve, 500)); // Wait longer between attempts
-        }
-        
-        const { data: userData } = await adminClient
-          .from('users')
-          .select('id, restaurant_id')
-          .eq('id', userId)
+        console.log('[flutterwave-callback] Meta missing, looking up pending_restaurants');
+        const { data: pendingData } = await adminClient
+          .from('pending_restaurants')
+          .select('*')
+          .eq('tx_ref', txRef)
           .maybeSingle();
 
-        if (userData) {
-          existingUser = userData;
-          break;
-        }
-        attempts++;
-      }
-
-      // If user doesn't exist, create it immediately
-      if (!existingUser) {
-        console.log('User not found after retries, creating user record immediately...');
-        try {
-          const { data: authUser } = await adminClient.auth.admin.getUserById(userId);
-          
-          if (authUser?.user) {
-            const { data: newUser, error: createError } = await adminClient
-              .from('users')
-              .insert({
-                id: userId,
-                full_name: authUser.user.user_metadata?.full_name || 'Restaurant Owner',
-                email: authUser.user.email || '',
-                phone: authUser.user.user_metadata?.phone || '',
-                role: 'restaurant_owner',
-                restaurant_id: null,
-              })
-              .select('id, restaurant_id')
-              .single();
-            
-            if (newUser && !createError) {
-              existingUser = newUser;
-              console.log('User created successfully in callback');
-            } else {
-              console.error('Failed to create user in callback:', createError);
-              // Try one more time with a longer wait
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              const { data: retryUser } = await adminClient
-                .from('users')
-                .select('id, restaurant_id')
-                .eq('id', userId)
-                .maybeSingle();
-              
-              if (retryUser) {
-                existingUser = retryUser;
-                console.log('User found after retry');
-              } else {
-                console.error('User still not found after all retries');
-                return NextResponse.redirect(new URL('/checkout?error=user_not_found', req.url));
-              }
-            }
-          } else {
-            console.error('User not found in auth.users:', userId);
-            return NextResponse.redirect(new URL('/checkout?error=user_not_found', req.url));
-          }
-        } catch (fallbackError: any) {
-          console.error('Error creating user in callback:', fallbackError);
-          // Last attempt - check if user exists now
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          const { data: finalCheck } = await adminClient
-            .from('users')
-            .select('id, restaurant_id')
-            .eq('id', userId)
-            .maybeSingle();
-          
-          if (finalCheck) {
-            existingUser = finalCheck;
-            console.log('User found in final check');
-          } else {
-            return NextResponse.redirect(new URL('/checkout?error=user_not_found', req.url));
-          }
+        if (pendingData) {
+          restaurantName = pendingData.restaurant_name;
+          slug = pendingData.slug;
+          bankName = pendingData.bank_name;
+          accountNumber = pendingData.account_number;
+          accountName = pendingData.account_name;
+          // Clean up the pending record
+          await adminClient.from('pending_restaurants').delete().eq('tx_ref', txRef);
         }
       }
 
-      // Check if user already has a restaurant
-      if (existingUser.restaurant_id) {
-        console.log('User already has a restaurant, redirecting to dashboard');
+      if (!restaurantName || !slug) {
+        console.error('[flutterwave-callback] Missing restaurant details. Meta:', meta);
+        return NextResponse.redirect(
+          new URL(`/checkout?error=missing_data&tx_ref=${txRef}`, req.url)
+        );
+      }
+
+      // ── 4. Verify the user's profile exists ──────────────────────────────
+      // The profile MUST already exist — created at registration time.
+      // We do NOT create it here; that would reintroduce race conditions.
+      const { data: userProfile, error: profileError } = await adminClient
+        .from('users')
+        .select('id, restaurant_id')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error('[flutterwave-callback] Profile lookup error:', profileError);
+        return NextResponse.redirect(new URL('/checkout?error=payment_failed', req.url));
+      }
+
+      if (!userProfile) {
+        // This should never happen with the new flow (profile created at signup).
+        // If it does, the user should re-register.
+        console.error('[flutterwave-callback] No profile found for user:', userId);
+        return NextResponse.redirect(new URL('/checkout?error=payment_failed', req.url));
+      }
+
+      // Already has a restaurant — payment may be a duplicate
+      if (userProfile.restaurant_id) {
+        console.log('[flutterwave-callback] User already has a restaurant, redirecting to dashboard');
         return NextResponse.redirect(new URL('/dashboard', req.url));
       }
 
-      // Check if slug is already taken (using admin client for speed)
+      // ── 5. Check slug uniqueness ─────────────────────────────────────────
       const { data: existingRestaurant } = await adminClient
         .from('restaurants')
         .select('id')
@@ -197,13 +130,13 @@ export async function GET(req: Request) {
         .maybeSingle();
 
       if (existingRestaurant) {
-        console.error('Restaurant slug already taken:', slug);
+        console.error('[flutterwave-callback] Slug already taken:', slug);
         return NextResponse.redirect(new URL('/checkout?error=slug_taken', req.url));
       }
 
-      // Create restaurant immediately (using admin client for speed)
-      const expiresAt = new Date();
-      expiresAt.setMonth(expiresAt.getMonth() + 1);
+      // ── 6. Create the restaurant ─────────────────────────────────────────
+      const periodEnd = new Date();
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
 
       const { data: restaurant, error: restaurantError } = await adminClient
         .from('restaurants')
@@ -214,55 +147,67 @@ export async function GET(req: Request) {
           account_number: accountNumber,
           account_name: accountName,
           subscription_status: 'active',
-          subscription_expires_at: expiresAt.toISOString(),
+          subscription_expires_at: periodEnd.toISOString(),
         })
-        .select()
+        .select('id')
         .single();
 
-      if (restaurantError) {
-        console.error('Error creating restaurant:', restaurantError);
-        const errorUrl = new URL('/checkout', req.url);
-        errorUrl.searchParams.set('error', 'restaurant_creation_failed');
-        return NextResponse.redirect(errorUrl);
+      if (restaurantError || !restaurant) {
+        console.error('[flutterwave-callback] Restaurant creation failed:', restaurantError);
+        return NextResponse.redirect(new URL('/checkout?error=restaurant_creation_failed', req.url));
       }
 
-      // Link restaurant to user immediately (using admin client for speed)
+      // ── 7. Link restaurant to user ───────────────────────────────────────
       const { error: userUpdateError } = await adminClient
         .from('users')
-        .update({ restaurant_id: restaurant.id })
+        .update({
+          restaurant_id: restaurant.id,
+          onboarding_complete: true,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', userId);
 
       if (userUpdateError) {
-        console.error('Error linking restaurant to user:', userUpdateError);
-        // Clean up restaurant if user update fails
+        console.error('[flutterwave-callback] User update failed:', userUpdateError);
+        // Roll back the restaurant row to avoid orphaned records
         await adminClient.from('restaurants').delete().eq('id', restaurant.id);
-        return NextResponse.redirect(new URL('/checkout?error=link_failed', req.url));
+        return NextResponse.redirect(new URL('/checkout?error=restaurant_creation_failed', req.url));
       }
 
-      console.log('Restaurant created and linked successfully:', {
+      // ── 8. Log subscription ──────────────────────────────────────────────
+      await adminClient.from('subscriptions').insert({
+        restaurant_id: restaurant.id,
+        user_id: userId,
+        plan: 'monthly',
+        status: 'active',
+        amount_paid: transactionData?.data?.amount || 3800,
+        currency: 'NGN',
+        flutterwave_tx_ref: txRef,
+        flutterwave_tx_id: transactionId || null,
+        period_start: new Date().toISOString(),
+        period_end: periodEnd.toISOString(),
+      });
+
+      console.log('[flutterwave-callback] Restaurant created and linked:', {
         restaurant_id: restaurant.id,
         user_id: userId,
       });
 
-      // Clean up any pending restaurant record
-      try {
-        await adminClient.from('pending_restaurants' as any).delete().eq('tx_ref', txRef);
-      } catch (error) {
-        // Non-critical, just log
-        console.log('Could not clean up pending restaurant (non-critical):', error);
-      }
+      // ── 9. Clean up pending record (best effort) ─────────────────────────
+      void adminClient
+        .from('pending_restaurants')
+        .delete()
+        .eq('tx_ref', txRef);
 
-      // Redirect to success page
       return NextResponse.redirect(
-        new URL(`/onboarding/success?tx_ref=${txRef}&created=true`, req.url)
+        new URL(`/onboarding/success?created=true`, req.url)
       );
     } catch (error) {
-      console.error('Payment callback error:', error);
+      console.error('[flutterwave-callback] Unexpected error:', error);
       return NextResponse.redirect(new URL('/checkout?error=processing_failed', req.url));
     }
   }
 
-  // If payment failed or was cancelled
-  console.log('Payment failed or cancelled. Status:', status);
+  console.log('[flutterwave-callback] Payment not successful. Status:', status);
   return NextResponse.redirect(new URL('/checkout?error=payment_failed', req.url));
 }

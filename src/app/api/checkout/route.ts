@@ -36,8 +36,9 @@ export async function POST(req: Request) {
     // Store restaurant data temporarily for callback retrieval (optional fallback)
     // Primary source will be transaction meta from Flutterwave
     try {
-      const { error: storeError } = await supabase
-        .from('pending_restaurants' as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: storeError } = await (supabase as any)
+        .from('pending_restaurants')
         .insert({
           tx_ref: txRef,
           user_id: user.id,
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
           bank_name: bankName,
           account_number: accountNumber,
           account_name: accountName,
-        } as any);
+        });
 
       if (storeError) {
         console.error('Error storing pending restaurant (non-critical):', storeError);

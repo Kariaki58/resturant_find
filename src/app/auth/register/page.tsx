@@ -22,7 +22,6 @@ import { createClient } from '@/lib/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 
-// Form validation schema
 const formSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
   email: z.string().email('Please enter a valid email address'),
@@ -57,7 +56,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // 1. Sign up user in Supabase Auth
+      // Step 1: Create the auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
@@ -72,96 +71,34 @@ export default function RegisterPage() {
       if (authError) throw authError;
       if (!authData.user) throw new Error('No user returned from sign up');
 
-      // Check if email confirmation is required
-      const requiresEmailVerification = !authData.user.email_confirmed_at;
-
-      // 2. Create user record in public.users table
-      // The database trigger will automatically create the user record,
-      // but we'll also call the API route to ensure it exists and update metadata
-      // Wait a moment for the trigger to fire
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Call API route to ensure user record exists with correct data
-      // This is idempotent - it will update if trigger created it, or create if not
-      const createUserResponse = await fetch('/api/auth/create-user', {
+      // Step 2: Create the public.users profile row immediately via API.
+      // This is a single UPSERT — no trigger dependency, no polling, no retries.
+      const profileResponse = await fetch('/api/auth/create-user', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName: values.fullName,
           email: values.email,
           phone: values.phone,
-          userId: authData.user.id,
         }),
       });
 
-      const createUserData = await createUserResponse.json();
-
-      if (!createUserResponse.ok) {
-        // Handle success cases (user already exists is fine)
-        if (
-          createUserData.message === 'User already exists' ||
-          createUserData.message === 'User created by trigger' ||
-          createUserData.message === 'User created by trigger, updated' ||
-          createUserData.message === 'User already exists, updated'
-        ) {
-          // User exists, continue
-          console.log('User record exists, continuing...');
-        }
-        // Handle foreign key constraint - trigger might still be processing
-        else if (createUserResponse.status === 409 || createUserData.error?.includes('still being created')) {
-          // Wait longer and check one more time
-          console.log('Waiting for user creation to complete...');
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          
-          // Final check - if user exists now, continue
-          const { data: { user: checkUser } } = await supabase.auth.getUser();
-          if (checkUser) {
-            const finalCheck = await fetch('/api/auth/create-user', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                fullName: values.fullName,
-                email: values.email,
-                phone: values.phone,
-                userId: checkUser.id,
-              }),
-            });
-            
-            const finalData = await finalCheck.json();
-            if (!finalCheck.ok && !finalData.message?.includes('exists') && !finalData.message?.includes('trigger')) {
-              throw new Error(finalData.error || 'Failed to create user record');
-            }
-          }
-        }
-        // Handle RLS / missing table errors
-        else if (
-          createUserData.error?.includes('row-level security') ||
-          createUserData.error?.includes('relation') ||
-          createUserData.error?.includes('table')
-        ) {
-          toast({
-            title: 'Setup Required',
-            description: 'Please run the database migrations and trigger setup in Supabase.',
-            variant: 'destructive',
-          });
-          return;
-        } else {
-          throw new Error(createUserData.error || 'Failed to create user record');
-        }
+      if (!profileResponse.ok) {
+        const profileData = await profileResponse.json();
+        throw new Error(profileData.error || 'Failed to create user profile');
       }
 
-      // 3. Redirect based on email verification status
+      // Step 3: Route the user based on whether email confirmation is needed
+      const requiresEmailVerification = !authData.user.email_confirmed_at;
+
       if (requiresEmailVerification) {
-        // Email confirmation is required, redirect to verification page
         router.push(`/auth/verify-email?email=${encodeURIComponent(values.email)}`);
         toast({
-          title: 'Account created',
-          description: 'Please check your email to verify your account before continuing.',
+          title: 'Check your email',
+          description: 'We sent a verification link. Please verify before continuing.',
         });
       } else {
-        // Email already confirmed, proceed to checkout
+        // Email already confirmed (e.g. email confirmation disabled in Supabase dashboard)
         router.push('/checkout');
       }
     } catch (error: any) {

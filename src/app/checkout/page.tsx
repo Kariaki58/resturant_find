@@ -21,62 +21,54 @@ function CheckoutContent() {
   });
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [profileReady, setProfileReady] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const supabase = createClient();
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+    const init = async () => {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) {
         router.push('/auth/login');
         return;
       }
 
-      // Check if user record exists in database, create if it doesn't
-      const { data: userData, error: userError } = await supabase
+      // Check that the user's profile row exists.
+      // It should always exist — created immediately at registration.
+      // If somehow missing (e.g. email-link login without going through register),
+      // create it now via the API.
+      const { data: profile } = await supabase
         .from('users')
-        .select('id')
-        .eq('id', user.id)
-        .maybeSingle();
+        .select('id, restaurant_id')
+        .eq('id', authUser.id)
+        .maybeSingle() as { data: { id: string; restaurant_id: string | null } | null, error: unknown };
 
-      if (!userData && !userError) {
-        // User record doesn't exist, try to create it
-        try {
-          const createUserResponse = await fetch('/api/auth/create-user', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              fullName: user.user_metadata?.full_name || 'Restaurant Owner',
-              email: user.email || '',
-              phone: user.user_metadata?.phone || '',
-              userId: user.id,
-            }),
-          });
-
-          const createUserData = await createUserResponse.json();
-          
-          if (!createUserResponse.ok && 
-              createUserData.message !== 'User already exists' &&
-              createUserData.message !== 'User created by trigger' &&
-              createUserData.message !== 'User created by trigger, updated' &&
-              createUserData.message !== 'User already exists, updated') {
-            // If creation fails, show error but don't block - let them try
-            console.error('Failed to create user record:', createUserData);
-          }
-        } catch (error) {
-          console.error('Error creating user record:', error);
-        }
+      if (!profile) {
+        // Profile missing — create it now (e.g. user signed in via magic link / OAuth)
+        await fetch('/api/auth/create-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fullName: authUser.user_metadata?.full_name || 'Restaurant Owner',
+            email: authUser.email || '',
+            phone: authUser.user_metadata?.phone || '',
+          }),
+        });
+      } else if (profile.restaurant_id) {
+        // User already has a restaurant — send them to the dashboard
+        router.push('/dashboard');
+        return;
       }
 
-      setUser(user);
+      setUser(authUser);
+      setProfileReady(true);
     };
-    getUser();
 
-    // Check for error in URL params
+    init();
+
+    // Handle payment failure URL params
     const error = searchParams.get('error');
     if (error === 'payment_failed') {
       toast({
@@ -84,28 +76,29 @@ function CheckoutContent() {
         description: 'Your payment could not be processed. Please try again.',
         variant: 'destructive',
       });
-    } else if (error === 'user_not_found') {
+    } else if (error === 'slug_taken') {
       toast({
-        title: 'Account setup incomplete',
-        description: 'Your account is still being set up. Please wait a moment and try again, or contact support if the issue persists.',
+        title: 'Restaurant name taken',
+        description: 'That restaurant URL is already in use. Please choose a different name.',
+        variant: 'destructive',
+      });
+    } else if (error === 'restaurant_creation_failed') {
+      toast({
+        title: 'Setup failed',
+        description: 'Your payment was received but restaurant creation failed. Please contact support.',
         variant: 'destructive',
       });
     }
   }, [router, supabase, searchParams, toast]);
 
-  const generateSlug = (name: string) => {
-    return name
+  const generateSlug = (name: string) =>
+    name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
-  };
 
-  const handleSlugChange = (name: string) => {
-    setFormData({
-      ...formData,
-      restaurantName: name,
-      slug: generateSlug(name),
-    });
+  const handleNameChange = (name: string) => {
+    setFormData({ ...formData, restaurantName: name, slug: generateSlug(name) });
   };
 
   const handleCheckout = async (e: React.FormEvent) => {
@@ -113,12 +106,9 @@ function CheckoutContent() {
     setLoading(true);
 
     try {
-      // Initialize Flutterwave payment
       const response = await fetch('/api/checkout', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           restaurantName: formData.restaurantName,
           slug: formData.slug,
@@ -134,17 +124,6 @@ function CheckoutContent() {
         throw new Error(data.error || 'Failed to initialize payment');
       }
 
-      // Store checkout data in localStorage as backup (in case webhook fails)
-      localStorage.setItem('pending_restaurant_data', JSON.stringify({
-        restaurantName: formData.restaurantName,
-        slug: formData.slug,
-        bankName: formData.bankName,
-        accountNumber: formData.accountNumber,
-        accountName: formData.accountName,
-        txRef: data.txRef,
-      }));
-
-      // Redirect to Flutterwave payment page
       if (data.paymentLink) {
         window.location.href = data.paymentLink;
       }
@@ -158,12 +137,10 @@ function CheckoutContent() {
     }
   };
 
-  if (!user) {
+  if (!user || !profileReady) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
+        <p className="text-muted-foreground">Loading...</p>
       </div>
     );
   }
@@ -216,11 +193,11 @@ function CheckoutContent() {
                     </AlertDescription>
                   </Alert>
                 )}
-                {searchParams.get('error') === 'user_not_found' && (
+                {searchParams.get('error') === 'slug_taken' && (
                   <Alert variant="destructive" className="mb-4">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      Your account is still being set up. Please wait a moment and try again. If the issue persists, please contact support.
+                      That restaurant URL is already taken. Please choose a different name.
                     </AlertDescription>
                   </Alert>
                 )}
@@ -232,7 +209,7 @@ function CheckoutContent() {
                       type="text"
                       placeholder="Mama Put HQ"
                       value={formData.restaurantName}
-                      onChange={(e) => handleSlugChange(e.target.value)}
+                      onChange={(e) => handleNameChange(e.target.value)}
                       required
                     />
                   </div>
@@ -343,13 +320,10 @@ export default function CheckoutPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
+        <p className="text-muted-foreground">Loading...</p>
       </div>
     }>
       <CheckoutContent />
     </Suspense>
   );
 }
-

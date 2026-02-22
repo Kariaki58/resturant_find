@@ -1,139 +1,180 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
+/**
+ * POST /api/webhooks/flutterwave
+ * Server-side webhook — fired asynchronously by Flutterwave after payment.
+ * Uses adminClient throughout for reliability (bypasses RLS, no session needed).
+ *
+ * This is a secondary path; the callback route handles the primary flow.
+ * The webhook is a safety net for cases where the user closes the browser
+ * before being redirected back.
+ */
 export async function POST(req: Request) {
   try {
     const signature = req.headers.get('verif-hash');
     const secretHash = process.env.FLUTTERWAVE_SECRET_HASH;
 
-    // Check signature if configured
     if (secretHash && signature !== secretHash) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const payload = await req.json();
+    console.log('[flutterwave-webhook] Received payload status:', payload.status);
 
-    if (payload.status === 'successful' && payload.amount === 3800) {
-      const { tx_ref, customer } = payload;
-      const supabase = await createClient();
-
-      // Extract user_id from tx_ref (format: restaurant-{user_id}-{timestamp})
-      const txRefParts = tx_ref.split('-');
-      if (txRefParts.length < 3) {
-        console.error('Invalid tx_ref format:', tx_ref);
-        return NextResponse.json({ error: 'Invalid transaction reference' }, { status: 400 });
-      }
-      const userId = txRefParts[1];
-      
-      console.log('Processing webhook for user:', userId, 'tx_ref:', tx_ref);
-
-      // Get restaurant details from meta
-      const meta = payload.meta || {};
-      const restaurantName = meta.restaurant_name;
-      const slug = meta.slug;
-      const bankName = meta.bank_name;
-      const accountNumber = meta.account_number;
-      const accountName = meta.account_name;
-
-      if (!restaurantName || !slug) {
-        console.error('Missing restaurant details in webhook payload');
-        return NextResponse.json({ error: 'Missing restaurant details' }, { status: 400 });
-      }
-
-      // Create restaurant
-      const expiresAt = new Date();
-      expiresAt.setMonth(expiresAt.getMonth() + 1);
-
-      const { data: restaurant, error: restaurantError } = await supabase
-        .from('restaurants')
-        .insert({
-          name: restaurantName,
-          slug: slug,
-          bank_name: bankName,
-          account_number: accountNumber,
-          account_name: accountName,
-          subscription_status: 'active',
-          subscription_expires_at: expiresAt.toISOString(),
-        })
-        .select()
-        .single();
-
-      if (restaurantError) {
-        console.error('Error creating restaurant:', restaurantError);
-        return NextResponse.json({ error: 'Failed to create restaurant' }, { status: 500 });
-      }
-
-      // Verify user exists first
-      const { data: existingUser, error: userCheckError } = await supabase
-        .from('users')
-        .select('id, restaurant_id')
-        .eq('id', userId)
-        .maybeSingle();
-      
-      if (userCheckError) {
-        console.error('Error checking user:', userCheckError);
-        // Clean up restaurant if user check fails
-        await supabase.from('restaurants').delete().eq('id', restaurant.id);
-        return NextResponse.json({ error: 'Failed to verify user' }, { status: 500 });
-      }
-
-      if (!existingUser) {
-        console.error('User not found:', userId);
-        // Clean up restaurant if user doesn't exist
-        await supabase.from('restaurants').delete().eq('id', restaurant.id);
-        return NextResponse.json({ error: 'User not found' }, { status: 404 });
-      }
-
-      // Check if user already has a restaurant
-      if (existingUser.restaurant_id) {
-        console.log('User already has a restaurant:', existingUser.restaurant_id);
-        // Check if it's the same restaurant
-        if (existingUser.restaurant_id === restaurant.id) {
-          return NextResponse.json({ 
-            status: 'ok', 
-            restaurant_id: restaurant.id,
-            message: 'Restaurant already linked' 
-          });
-        }
-        // User has a different restaurant, don't update but return success
-        return NextResponse.json({ 
-          status: 'ok', 
-          restaurant_id: restaurant.id,
-          message: 'Restaurant created but user already has one' 
-        });
-      }
-
-      // Update user with restaurant_id
-      const { error: userError, data: updatedUser } = await supabase
-        .from('users')
-        .update({ restaurant_id: restaurant.id })
-        .eq('id', userId)
-        .select();
-
-      if (userError) {
-        console.error('Error updating user:', userError);
-        // Try to clean up restaurant if user update fails
-        await supabase.from('restaurants').delete().eq('id', restaurant.id);
-        return NextResponse.json({ error: 'Failed to link restaurant to user' }, { status: 500 });
-      }
-
-      console.log('Successfully created restaurant and linked to user:', {
-        restaurant_id: restaurant.id,
-        user_id: userId,
-        updated_user: updatedUser
-      });
-
-      return NextResponse.json({ 
-        status: 'ok', 
-        restaurant_id: restaurant.id,
-        user_updated: true,
-        message: 'Restaurant created and linked successfully'
-      });
+    if (payload.status !== 'successful' || payload.amount !== 3800) {
+      return NextResponse.json({ status: 'ignored' });
     }
 
-    return NextResponse.json({ status: 'ignored' });
+    const { tx_ref } = payload;
+
+    if (!tx_ref?.startsWith('restaurant-')) {
+      console.error('[flutterwave-webhook] Invalid tx_ref:', tx_ref);
+      return NextResponse.json({ error: 'Invalid transaction reference' }, { status: 400 });
+    }
+
+    // Parse user ID from tx_ref
+    const withoutPrefix = tx_ref.substring(11);
+    const uuidMatch = withoutPrefix.match(
+      /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})-/
+    );
+
+    if (!uuidMatch) {
+      console.error('[flutterwave-webhook] UUID parse failed:', tx_ref);
+      return NextResponse.json({ error: 'Invalid transaction reference' }, { status: 400 });
+    }
+
+    const userId = uuidMatch[1];
+    const adminClient = createAdminClient();
+
+    // ── Check if already processed (idempotency) ─────────────────────────
+    const { data: existingUser } = await adminClient
+      .from('users')
+      .select('id, restaurant_id')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (!existingUser) {
+      console.error('[flutterwave-webhook] No profile for user:', userId);
+      return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
+    }
+
+    if (existingUser.restaurant_id) {
+      console.log('[flutterwave-webhook] Already processed for user:', userId);
+      return NextResponse.json({ status: 'ok', message: 'Already processed' });
+    }
+
+    // ── Resolve restaurant details ────────────────────────────────────────
+    const meta = payload.meta || {};
+    let restaurantName: string = meta.restaurant_name;
+    let slug: string = meta.slug;
+    let bankName: string = meta.bank_name;
+    let accountNumber: string = meta.account_number;
+    let accountName: string = meta.account_name;
+
+    if (!restaurantName || !slug) {
+      const { data: pendingData } = await adminClient
+        .from('pending_restaurants')
+        .select('*')
+        .eq('tx_ref', tx_ref)
+        .maybeSingle();
+
+      if (pendingData) {
+        restaurantName = pendingData.restaurant_name;
+        slug = pendingData.slug;
+        bankName = pendingData.bank_name;
+        accountNumber = pendingData.account_number;
+        accountName = pendingData.account_name;
+      }
+    }
+
+    if (!restaurantName || !slug) {
+      console.error('[flutterwave-webhook] Missing restaurant details');
+      return NextResponse.json({ error: 'Missing restaurant details' }, { status: 400 });
+    }
+
+    // ── Check slug uniqueness ─────────────────────────────────────────────
+    const { data: existingRestaurant } = await adminClient
+      .from('restaurants')
+      .select('id')
+      .eq('slug', slug)
+      .maybeSingle();
+
+    if (existingRestaurant) {
+      console.error('[flutterwave-webhook] Slug taken:', slug);
+      return NextResponse.json({ error: 'Restaurant slug already taken' }, { status: 409 });
+    }
+
+    // ── Create restaurant ─────────────────────────────────────────────────
+    const periodEnd = new Date();
+    periodEnd.setMonth(periodEnd.getMonth() + 1);
+
+    const { data: restaurant, error: restaurantError } = await adminClient
+      .from('restaurants')
+      .insert({
+        name: restaurantName,
+        slug: slug,
+        bank_name: bankName,
+        account_number: accountNumber,
+        account_name: accountName,
+        subscription_status: 'active',
+        subscription_expires_at: periodEnd.toISOString(),
+      })
+      .select('id')
+      .single();
+
+    if (restaurantError || !restaurant) {
+      console.error('[flutterwave-webhook] Restaurant creation failed:', restaurantError);
+      return NextResponse.json({ error: 'Failed to create restaurant' }, { status: 500 });
+    }
+
+    // ── Link restaurant to user ───────────────────────────────────────────
+    const { error: userUpdateError } = await adminClient
+      .from('users')
+      .update({
+        restaurant_id: restaurant.id,
+        onboarding_complete: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId);
+
+    if (userUpdateError) {
+      console.error('[flutterwave-webhook] User link failed:', userUpdateError);
+      await adminClient.from('restaurants').delete().eq('id', restaurant.id);
+      return NextResponse.json({ error: 'Failed to link restaurant to user' }, { status: 500 });
+    }
+
+    // ── Log subscription ──────────────────────────────────────────────────
+    await adminClient.from('subscriptions').insert({
+      restaurant_id: restaurant.id,
+      user_id: userId,
+      plan: 'monthly',
+      status: 'active',
+      amount_paid: payload.amount || 3800,
+      currency: 'NGN',
+      flutterwave_tx_ref: tx_ref,
+      period_start: new Date().toISOString(),
+      period_end: periodEnd.toISOString(),
+    });
+
+    // ── Clean up pending record ───────────────────────────────────────────
+    void adminClient
+      .from('pending_restaurants')
+      .delete()
+      .eq('tx_ref', tx_ref);
+
+    console.log('[flutterwave-webhook] Restaurant created and linked:', {
+      restaurant_id: restaurant.id,
+      user_id: userId,
+    });
+
+    return NextResponse.json({
+      status: 'ok',
+      restaurant_id: restaurant.id,
+      message: 'Restaurant created and linked successfully',
+    });
   } catch (err) {
-    console.error('Webhook error:', err);
+    console.error('[flutterwave-webhook] Unexpected error:', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
