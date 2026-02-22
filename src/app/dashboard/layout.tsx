@@ -1,3 +1,7 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   SidebarProvider, 
   Sidebar, 
@@ -12,8 +16,49 @@ import {
 } from "@/components/ui/sidebar";
 import { Utensils, ShoppingBag, LayoutDashboard, Settings, LogOut, Smartphone, User, CreditCard } from 'lucide-react';
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const [userInfo, setUserInfo] = useState<{ name: string; email: string } | null>(null);
+  const router = useRouter();
+  const { toast } = useToast();
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('full_name, email')
+          .eq('id', user.id)
+          .single();
+        
+        if (userData) {
+          setUserInfo({
+            name: userData.full_name,
+            email: userData.email,
+          });
+        } else {
+          setUserInfo({
+            name: user.user_metadata?.full_name || 'User',
+            email: user.email || '',
+          });
+        }
+      }
+    };
+    fetchUserInfo();
+  }, [supabase]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast({
+      title: 'Logged out',
+      description: 'You have been successfully logged out.',
+    });
+    router.push('/auth/login');
+  };
   const navItems = [
     { icon: <LayoutDashboard />, label: "Overview", href: "/dashboard" },
     { icon: <ShoppingBag />, label: "Orders", href: "/dashboard/orders" },
@@ -49,16 +94,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter className="p-4 border-t border-border/50">
+            {userInfo && (
             <div className="flex items-center gap-3 px-2 py-3 bg-muted/50 rounded-xl mb-4">
               <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
                 <User size={16} className="text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold truncate">Mama Put HQ</p>
-                <p className="text-xs text-muted-foreground truncate">manager@mama.ng</p>
+                  <p className="text-sm font-bold truncate">{userInfo.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{userInfo.email}</p>
+                </div>
               </div>
-            </div>
-            <SidebarMenuButton className="w-full text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl h-11">
+            )}
+            <SidebarMenuButton 
+              onClick={handleLogout}
+              className="w-full text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl h-11 cursor-pointer"
+            >
               <LogOut size={18} className="mr-3" />
               <span className="font-medium">Logout</span>
             </SidebarMenuButton>

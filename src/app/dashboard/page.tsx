@@ -1,55 +1,294 @@
-import { Utensils, ShoppingBag, CreditCard, TrendingUp, Bell, Clock } from 'lucide-react';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Utensils, ShoppingBag, CreditCard, TrendingUp, Bell, Clock, ShieldCheck, Smartphone, Link2, Copy, Check } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase/client';
+import { getAuthenticatedUser } from '@/lib/auth-helpers';
+import { formatDistanceToNow } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+
+interface Restaurant {
+  id: string;
+  name: string;
+  slug: string;
+  subscription_status: string;
+  subscription_expires_at: string;
+}
+
+interface Order {
+  id: string;
+  order_type: string;
+  status: string;
+  total_amount: number;
+  table_id: string | null;
+  created_at: string;
+  table?: { table_number: number } | null;
+}
 
 export default function DashboardPage() {
-  // Dummy data for visual representation
-  const stats = [
-    { title: "Total Revenue", value: "₦142,500", icon: <TrendingUp className="text-primary" />, trend: "+12% this week" },
-    { title: "Orders Today", value: "24", icon: <ShoppingBag className="text-primary" />, trend: "+4 from yesterday" },
-    { title: "Active Tables", value: "8 / 12", icon: <Utensils className="text-primary" />, trend: "Busy period" },
-    { title: "Awaiting Confirmation", value: "3", icon: <Bell className="text-orange-600 animate-bounce" />, trend: "Action needed" },
-  ];
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    ordersToday: 0,
+    activeTables: 0,
+    awaitingConfirmation: 0,
+  });
+  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+  const router = useRouter();
+  const supabase = createClient();
+  const { toast } = useToast();
 
-  const recentOrders = [
-    { id: "ORD-9281", type: "Dine-in", table: "T-04", amount: "₦4,200", status: "preparing", time: "5 mins ago" },
-    { id: "ORD-9280", type: "Online", table: null, amount: "₦8,500", status: "awaiting_confirmation", time: "12 mins ago" },
-    { id: "ORD-9279", type: "Pre-order", table: null, amount: "₦12,000", status: "confirmed", time: "25 mins ago" },
-  ];
+  const menuUrl = restaurant?.slug 
+    ? `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/menu/${restaurant.slug}`
+    : '';
+
+  const copyMenuLink = async () => {
+    if (!menuUrl) return;
+    
+    try {
+      await navigator.clipboard.writeText(menuUrl);
+      setCopied(true);
+      toast({
+        title: 'Link copied!',
+        description: 'Your menu link has been copied to clipboard.',
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast({
+        title: 'Failed to copy',
+        description: 'Please copy the link manually.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Use production-ready auth helper
+        const authData = await getAuthenticatedUser();
+        
+        if (!authData || !authData.user) {
+          router.push('/auth/login');
+          return;
+        }
+
+        let finalAuthData = authData;
+
+        if (!authData.userData?.restaurant_id || !authData.restaurant) {
+          // Wait a bit and retry once more (webhook might still be processing)
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          const retryAuthData = await getAuthenticatedUser();
+          
+          if (!retryAuthData?.userData?.restaurant_id || !retryAuthData?.restaurant) {
+            console.log('No restaurant found. Redirecting to restaurants page.');
+            router.push('/restaurants');
+            return;
+          }
+          
+          finalAuthData = retryAuthData;
+        }
+
+        if (finalAuthData.restaurant) {
+          setRestaurant(finalAuthData.restaurant);
+        }
+
+        const userData = finalAuthData.userData!;
+        const restaurantId = finalAuthData.restaurant!.id;
+
+        // Calculate stats
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Total revenue (completed orders)
+        const { data: revenueData } = await supabase
+          .from('orders')
+          .select('total_amount')
+          .eq('restaurant_id', userData.restaurant_id)
+          .eq('status', 'completed');
+
+        const totalRevenue = revenueData?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
+
+        // Orders today
+        const { data: ordersTodayData } = await supabase
+          .from('orders')
+          .select('id')
+          .eq('restaurant_id', userData.restaurant_id)
+          .gte('created_at', today.toISOString());
+
+        // Active tables
+        const { data: tablesData } = await supabase
+          .from('tables')
+          .select('id, status')
+          .eq('restaurant_id', userData.restaurant_id);
+
+        const activeTables = tablesData?.filter(t => t.status === 'occupied').length || 0;
+        const totalTables = tablesData?.length || 0;
+
+        // Awaiting confirmation
+        const { data: awaitingData } = await supabase
+          .from('orders')
+          .select('id')
+          .eq('restaurant_id', userData.restaurant_id)
+          .eq('status', 'awaiting_confirmation');
+
+        setStats({
+          totalRevenue,
+          ordersToday: ordersTodayData?.length || 0,
+          activeTables: `${activeTables} / ${totalTables}`,
+          awaitingConfirmation: awaitingData?.length || 0,
+        });
+
+        // Fetch recent orders
+        const { data: ordersData } = await supabase
+          .from('orders')
+          .select(`
+            *,
+            table:tables(table_number)
+          `)
+          .eq('restaurant_id', userData.restaurant_id)
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (ordersData) {
+          setRecentOrders(ordersData as Order[]);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('dashboard-updates')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'orders' },
+        () => {
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [router, supabase]);
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+    }).format(amount);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'awaiting_confirmation':
+        return 'bg-orange-500 hover:bg-orange-600';
+      case 'preparing':
+        return 'bg-blue-500 hover:bg-blue-600';
+      case 'confirmed':
+        return 'bg-green-500 hover:bg-green-600';
+      default:
+        return 'bg-gray-500 hover:bg-gray-600';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6 space-y-8 max-w-7xl mx-auto">
+        <Skeleton className="h-12 w-64" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold font-headline">Welcome back, Mama Put!</h1>
+          <h1 className="text-3xl font-bold font-headline">
+            Welcome back, {restaurant?.name || 'Restaurant'}!
+          </h1>
           <p className="text-muted-foreground">Here's what's happening in your restaurant today.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="rounded-full bg-white">
-            <Clock className="mr-2 h-4 w-4" /> Shift History
+          <Button variant="outline" className="rounded-full bg-white" asChild>
+            <Link href="/dashboard/orders">
+              <Clock className="mr-2 h-4 w-4" /> View Orders
+            </Link>
           </Button>
-          <Button className="rounded-full">
-            <Utensils className="mr-2 h-4 w-4" /> Manage Menu
+          <Button className="rounded-full" asChild>
+            <Link href="/dashboard/menu">
+              <Utensils className="mr-2 h-4 w-4" /> Manage Menu
+            </Link>
           </Button>
         </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, i) => (
-          <Card key={i} className="overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              {stat.icon}
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground mt-1">{stat.trend}</p>
-            </CardContent>
-          </Card>
-        ))}
+        <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <TrendingUp className="text-primary" size={20} />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(stats.totalRevenue)}</div>
+            <p className="text-xs text-muted-foreground mt-1">All time</p>
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium">Orders Today</CardTitle>
+            <ShoppingBag className="text-primary" size={20} />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.ordersToday}</div>
+            <p className="text-xs text-muted-foreground mt-1">New orders</p>
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium">Active Tables</CardTitle>
+            <Utensils className="text-primary" size={20} />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.activeTables}</div>
+            <p className="text-xs text-muted-foreground mt-1">Currently occupied</p>
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium">Awaiting Confirmation</CardTitle>
+            <Bell className={`${stats.awaitingConfirmation > 0 ? 'text-orange-600 animate-bounce' : 'text-primary'}`} size={20} />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.awaitingConfirmation}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats.awaitingConfirmation > 0 ? 'Action needed' : 'All clear'}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
@@ -65,55 +304,108 @@ export default function DashboardPage() {
             </Button>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentOrders.map((order) => (
-                <div key={order.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-xl border border-transparent hover:border-primary/20 transition-all cursor-pointer group">
-                  <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-full ${order.status === 'awaiting_confirmation' ? 'bg-orange-100' : 'bg-primary/10'}`}>
-                      <CreditCard className={order.status === 'awaiting_confirmation' ? 'text-orange-600' : 'text-primary'} size={20} />
-                    </div>
-                    <div>
-                      <div className="font-bold flex items-center gap-2">
-                        {order.id}
-                        <Badge variant="outline" className="text-[10px] uppercase">{order.type}</Badge>
+            {recentOrders.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <ShoppingBag className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                <p>No orders yet</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {recentOrders.map((order) => (
+                  <Link key={order.id} href={`/dashboard/orders/${order.id}`}>
+                    <div className="flex items-center justify-between p-4 bg-muted/30 rounded-xl border border-transparent hover:border-primary/20 transition-all cursor-pointer group">
+                      <div className="flex items-center gap-4">
+                        <div className={`p-3 rounded-full ${order.status === 'awaiting_confirmation' ? 'bg-orange-100' : 'bg-primary/10'}`}>
+                          <CreditCard className={order.status === 'awaiting_confirmation' ? 'text-orange-600' : 'text-primary'} size={20} />
+                        </div>
+                        <div>
+                          <div className="font-bold flex items-center gap-2">
+                            {order.id.slice(0, 8).toUpperCase()}
+                            <Badge variant="outline" className="text-[10px] uppercase">
+                              {order.order_type.replace('_', '-')}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {order.table ? `Table ${order.table.table_number}` : 'Online Order'} • {formatDistanceToNow(new Date(order.created_at), { addSuffix: true })}
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-xs text-muted-foreground">{order.table ? `Table ${order.table}` : 'Online Order'} • {order.time}</p>
+                      <div className="text-right flex flex-col items-end gap-2">
+                        <span className="font-bold">{formatCurrency(order.total_amount)}</span>
+                        <Badge className={getStatusColor(order.status)}>
+                          {order.status.replace('_', ' ')}
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right flex flex-col items-end gap-2">
-                    <span className="font-bold">{order.amount}</span>
-                    <Badge 
-                      className={
-                        order.status === 'awaiting_confirmation' ? 'bg-orange-500 hover:bg-orange-600' :
-                        order.status === 'preparing' ? 'bg-blue-500 hover:bg-blue-600' :
-                        'bg-green-500 hover:bg-green-600'
-                      }
-                    >
-                      {order.status.replace('_', ' ')}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Subscription & Support */}
         <div className="space-y-6">
+          {/* Share Menu Card */}
+          <Card className="border-none shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Link2 size={20} className="text-primary" />
+                Share Your Menu
+              </CardTitle>
+              <CardDescription>Share this link with your customers</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center gap-2 p-3 bg-muted rounded-lg border">
+                <code className="flex-1 text-sm text-muted-foreground truncate">
+                  {menuUrl || 'Loading...'}
+                </code>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={copyMenuLink}
+                  className="shrink-0"
+                >
+                  {copied ? (
+                    <Check size={16} className="text-green-600" />
+                  ) : (
+                    <Copy size={16} />
+                  )}
+                </Button>
+              </div>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => window.open(menuUrl, '_blank')}
+                disabled={!menuUrl}
+              >
+                <Link2 className="mr-2 h-4 w-4" />
+                View Public Menu
+              </Button>
+            </CardContent>
+          </Card>
+
           <Card className="bg-primary text-white border-none shadow-lg relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-20">
               <ShieldCheck size={80} />
             </div>
             <CardHeader>
-              <CardTitle className="text-lg">Subscription</CardTitle>
+              <CardTitle className="text-lg text-white">Subscription</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <p className="text-sm opacity-80">Plan: Professional</p>
-                <p className="text-2xl font-bold">Active</p>
+                <p className="text-2xl font-bold capitalize">{restaurant?.subscription_status || 'Trial'}</p>
               </div>
-              <p className="text-xs opacity-80">Next billing: Dec 24, 2024 (₦3,800)</p>
-              <Button variant="secondary" className="w-full font-bold">Manage Billing</Button>
+              {restaurant?.subscription_expires_at && (
+                <p className="text-xs opacity-80">
+                  {restaurant.subscription_status === 'active' ? 'Next billing: ' : 'Expires: '}
+                  {new Date(restaurant.subscription_expires_at).toLocaleDateString()} (₦3,800)
+                </p>
+              )}
+              <Button variant="secondary" className="w-full font-bold" asChild>
+                <Link href="/dashboard/billing">Manage Billing</Link>
+              </Button>
             </CardContent>
           </Card>
 
@@ -122,17 +414,25 @@ export default function DashboardPage() {
               <CardTitle className="text-lg">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-3">
-              <Button variant="outline" className="h-20 flex-col gap-2 bg-white rounded-xl">
-                <Utensils size={20} /> <span className="text-xs">Menu</span>
+              <Button variant="outline" className="h-20 flex-col gap-2 bg-white rounded-xl" asChild>
+                <Link href="/dashboard/menu">
+                  <Utensils size={20} /> <span className="text-xs">Menu</span>
+                </Link>
               </Button>
-              <Button variant="outline" className="h-20 flex-col gap-2 bg-white rounded-xl">
-                <Smartphone size={20} /> <span className="text-xs">QR Codes</span>
+              <Button variant="outline" className="h-20 flex-col gap-2 bg-white rounded-xl" asChild>
+                <Link href="/dashboard/tables">
+                  <Smartphone size={20} /> <span className="text-xs">QR Codes</span>
+                </Link>
               </Button>
-              <Button variant="outline" className="h-20 flex-col gap-2 bg-white rounded-xl">
-                <TrendingUp size={20} /> <span className="text-xs">Analytics</span>
+              <Button variant="outline" className="h-20 flex-col gap-2 bg-white rounded-xl" asChild>
+                <Link href="/dashboard/orders">
+                  <TrendingUp size={20} /> <span className="text-xs">Orders</span>
+                </Link>
               </Button>
-              <Button variant="outline" className="h-20 flex-col gap-2 bg-white rounded-xl">
-                <Bell size={20} /> <span className="text-xs">Settings</span>
+              <Button variant="outline" className="h-20 flex-col gap-2 bg-white rounded-xl" asChild>
+                <Link href="/dashboard/settings">
+                  <Bell size={20} /> <span className="text-xs">Settings</span>
+                </Link>
               </Button>
             </CardContent>
           </Card>
