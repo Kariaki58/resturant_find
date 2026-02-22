@@ -12,6 +12,7 @@ export async function POST(req: Request) {
   try {
     const formData = await req.formData();
     const file = formData.get('file') as File;
+    const type = formData.get('type') as string | null; // 'banner' or null
 
     if (!file) {
       return NextResponse.json(
@@ -42,17 +43,27 @@ export async function POST(req: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
+    // Determine upload settings based on type
+    const isBanner = type === 'banner';
+    const folder = isBanner ? 'restaurant-banners' : 'restaurant-menu-items';
+    const transformation = isBanner
+      ? [
+          { width: 1200, height: 400, crop: 'fill', gravity: 'center' },
+          { quality: 'auto' },
+        ]
+      : [
+          { width: 800, height: 800, crop: 'limit' },
+          { quality: 'auto' },
+        ];
+
     // Upload to Cloudinary
     const uploadResult = await new Promise((resolve, reject) => {
       cloudinary.uploader
         .upload_stream(
           {
             resource_type: 'image',
-            folder: 'restaurant-menu-items',
-            transformation: [
-              { width: 800, height: 800, crop: 'limit' },
-              { quality: 'auto' },
-            ],
+            folder: folder,
+            transformation: transformation,
           },
           (error, result) => {
             if (error) reject(error);

@@ -90,9 +90,10 @@ export async function POST(req: Request) {
     }
 
     // Append table number to note if order is from a scanned table
+    // This is only visible to the restaurant, not the customer
     let finalNote = note || null;
     if (tableNumber) {
-      const tableNote = `(order from table ${tableNumber})`;
+      const tableNote = `from table ${tableNumber}`;
       if (finalNote) {
         finalNote = `${finalNote} ${tableNote}`;
       } else {

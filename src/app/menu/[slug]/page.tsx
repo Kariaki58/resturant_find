@@ -18,6 +18,7 @@ interface Restaurant {
   id: string;
   name: string;
   slug: string;
+  banner_url: string | null;
 }
 
 interface Category {
@@ -74,7 +75,7 @@ export default function RestaurantMenuPage({ params }: { params: Promise<{ slug:
       // Fetch restaurant by slug
       const { data: restaurantData, error: restaurantError } = await supabase
         .from('restaurants')
-        .select('id, name, slug')
+        .select('id, name, slug, banner_url')
         .eq('slug', slug)
         .maybeSingle();
 
@@ -243,8 +244,8 @@ export default function RestaurantMenuPage({ params }: { params: Promise<{ slug:
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen bg-white">
-        <div className="h-64 relative overflow-hidden bg-muted">
-          <div className="absolute inset-0 bg-black/40" />
+        <div className="h-64 relative overflow-hidden bg-gradient-to-br from-primary/20 to-primary/5">
+          <div className="absolute inset-0 bg-black/20" />
           <div className="absolute top-6 left-6 z-10">
             <Logo size="md" variant="white" />
           </div>
@@ -280,9 +281,20 @@ export default function RestaurantMenuPage({ params }: { params: Promise<{ slug:
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
-      {/* Hero Header */}
+      {/* Hero Header with Banner */}
       <div className="h-64 relative overflow-hidden bg-gradient-to-br from-primary/20 to-primary/5">
-        <div className="absolute inset-0 bg-black/20" />
+        {restaurant.banner_url ? (
+          <>
+            <img
+              src={restaurant.banner_url}
+              alt={`${restaurant.name} banner`}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-black/30" />
+          </>
+        ) : (
+          <div className="absolute inset-0 bg-black/20" />
+        )}
         <div className="absolute top-6 left-6 z-10">
           <Logo size="md" variant="white" />
         </div>
