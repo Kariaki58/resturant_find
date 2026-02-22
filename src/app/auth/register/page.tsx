@@ -20,6 +20,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
 import { Loader2 } from 'lucide-react';
+import { Logo } from '@/components/logo';
 
 // Form validation schema
 const formSchema = z.object({
@@ -166,9 +167,7 @@ export default function RegisterPage() {
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-1">
           <div className="flex justify-center mb-2">
-            <span className="text-3xl font-bold tracking-tighter">
-              resturant<span className="text-primary">me</span>
-            </span>
+            <Logo size="lg" showLink={false} />
           </div>
           <CardTitle className="text-2xl text-center">Create an account</CardTitle>
           <CardDescription className="text-center">

@@ -1,24 +1,20 @@
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import { Smartphone, CreditCard, ShieldCheck, ChevronRight } from 'lucide-react';
+import { Smartphone, CreditCard, ShieldCheck } from 'lucide-react';
+import { GetStartedButton } from '@/components/get-started-button';
+import { AuthNavButtons } from '@/components/auth-nav-buttons';
+import { Logo } from '@/components/logo';
 
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}
       <header className="px-6 h-20 flex items-center justify-between bg-white/50 backdrop-blur-md sticky top-0 z-50 border-b">
-        <Link href="/" className="flex items-center">
-          <span className="text-2xl font-bold tracking-tighter text-foreground">
-            resturant<span className="text-primary">me</span>
-          </span>
-        </Link>
+        <Logo size="md" />
         <nav className="hidden md:flex items-center gap-8">
           <Link href="#features" className="text-sm font-medium hover:text-primary transition-colors">Features</Link>
           <Link href="#pricing" className="text-sm font-medium hover:text-primary transition-colors">Pricing</Link>
-          <Link href="/auth/login" className="text-sm font-medium hover:text-primary transition-colors">Login</Link>
-          <Button asChild className="rounded-full px-6">
-            <Link href="/auth/register">Start Free Trial</Link>
-          </Button>
+          <AuthNavButtons />
         </nav>
       </header>
 
@@ -37,11 +33,11 @@ export default function Home() {
                 The ultimate restaurant management tool. Accept bank transfers securely, manage dine-in QR orders, and track sales in real-time.
               </p>
               <div className="flex flex-wrap gap-4">
-                <Button size="lg" asChild className="rounded-full text-lg px-8 py-7">
-                  <Link href="/auth/register">Register Restaurant <ChevronRight className="ml-2" /></Link>
-                </Button>
-                <Button size="lg" variant="outline" className="rounded-full text-lg px-8 py-7 bg-white">
-                  Learn More
+                <GetStartedButton size="lg" className="rounded-full text-lg px-8 py-7">
+                  Register Restaurant
+                </GetStartedButton>
+                <Button size="lg" variant="outline" className="rounded-full text-lg px-8 py-7 bg-white" asChild>
+                  <Link href="#features">Learn More</Link>
                 </Button>
               </div>
             </div>
@@ -114,8 +110,10 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
-              <Button size="lg" className="w-full rounded-full py-8 text-lg font-bold">Get Started Now</Button>
-              <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Cancel anytime • 7-day trial available</p>
+              <GetStartedButton size="lg" className="w-full rounded-full py-8 text-lg font-bold">
+                Get Started Now
+              </GetStartedButton>
+              <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Cancel anytime</p>
             </div>
           </div>
         </section>
@@ -123,11 +121,7 @@ export default function Home() {
 
       <footer className="py-12 px-6 border-t bg-white">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
-          <Link href="/" className="flex items-center">
-            <span className="text-xl font-bold tracking-tighter text-foreground">
-              resturant<span className="text-primary">me</span>
-            </span>
-          </Link>
+          <Logo size="sm" />
           <p className="text-sm text-muted-foreground">© 2024 resturantme Technologies. Built for Nigeria.</p>
         </div>
       </footer>

@@ -289,7 +289,7 @@ function CheckoutContent() {
                   </li>
                 </ul>
                 <p className="text-xs opacity-80 pt-4 border-t border-white/20">
-                  Cancel anytime • 7-day trial available
+                  Cancel anytime
                 </p>
               </CardContent>
             </Card>

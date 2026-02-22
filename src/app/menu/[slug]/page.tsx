@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
+import { Logo } from '@/components/logo';
 
 interface Restaurant {
   id: string;
@@ -242,9 +243,9 @@ export default function RestaurantMenuPage({ params }: { params: Promise<{ slug:
       <div className="flex flex-col min-h-screen bg-white">
         <div className="h-64 relative overflow-hidden bg-muted">
           <div className="absolute inset-0 bg-black/40" />
-          <Link href="/" className="absolute top-6 left-6 text-white font-bold flex items-center gap-1 tracking-tighter text-xl">
-            resturant<span className="text-primary">me</span>
-          </Link>
+          <div className="absolute top-6 left-6 z-10">
+            <Logo size="md" variant="white" />
+          </div>
         </div>
         <div className="max-w-4xl mx-auto w-full -mt-20 relative z-10 px-4">
           <div className="bg-white rounded-3xl p-8 shadow-xl border mb-8">
@@ -280,9 +281,9 @@ export default function RestaurantMenuPage({ params }: { params: Promise<{ slug:
       {/* Hero Header */}
       <div className="h-64 relative overflow-hidden bg-gradient-to-br from-primary/20 to-primary/5">
         <div className="absolute inset-0 bg-black/20" />
-        <Link href="/" className="absolute top-6 left-6 text-white font-bold flex items-center gap-1 tracking-tighter text-xl z-10">
-          resturant<span className="text-primary">me</span>
-        </Link>
+        <div className="absolute top-6 left-6 z-10">
+          <Logo size="md" variant="white" />
+        </div>
       </div>
 
       <div className="max-w-4xl mx-auto w-full -mt-20 relative z-10 px-4">
