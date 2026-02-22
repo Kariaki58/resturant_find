@@ -367,18 +367,47 @@ export default function RestaurantMenuPage({ params }: { params: Promise<{ slug:
                         </p>
                       )}
                     </div>
-                    <Button
-                      size="sm"
-                      className="rounded-full h-9 px-4"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        addToCart(item);
-                      }}
-                      disabled={item.quantity !== null && item.quantity <= 0}
-                    >
-                      <Plus size={16} className="mr-1" />
-                      Add
-                    </Button>
+                    {(() => {
+                      const cartItem = cart.find((i) => i.menuItem.id === item.id);
+                      if (cartItem) {
+                        return (
+                          <div className="flex items-center gap-3 bg-primary/5 rounded-full p-1 border border-primary/20" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 rounded-full hover:bg-primary hover:text-white transition-colors"
+                              onClick={() => updateQuantity(item.id, cartItem.quantity - 1)}
+                            >
+                              <Minus size={14} />
+                            </Button>
+                            <span className="font-bold text-sm min-w-[1.2rem] text-center">{cartItem.quantity}</span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 rounded-full hover:bg-primary hover:text-white transition-colors"
+                              onClick={() => addToCart(item)}
+                              disabled={item.quantity !== null && cartItem.quantity >= item.quantity}
+                            >
+                              <Plus size={14} />
+                            </Button>
+                          </div>
+                        );
+                      }
+                      return (
+                        <Button
+                          size="sm"
+                          className="rounded-full h-9 px-4"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addToCart(item);
+                          }}
+                          disabled={item.quantity !== null && item.quantity <= 0}
+                        >
+                          <Plus size={16} className="mr-1" />
+                          Add
+                        </Button>
+                      );
+                    })()}
                   </div>
                 </div>
                 <div className="w-24 h-24 rounded-xl overflow-hidden shrink-0 border bg-muted">

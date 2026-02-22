@@ -440,6 +440,12 @@ INSERT
 WITH
     CHECK (true);
 
+-- Anyone can view an order if they have the ID (UUIDs are unguessable)
+DROP POLICY IF EXISTS "orders_public_select" ON public.orders;
+
+CREATE POLICY "orders_public_select" ON public.orders FOR
+SELECT USING (true);
+
 -- Restaurant owners can view and manage all orders for their restaurant
 CREATE POLICY "orders_owner_all" ON public.orders FOR ALL USING (
     restaurant_id IN (
@@ -461,6 +467,12 @@ CREATE POLICY "order_items_public_insert" ON public.order_items FOR
 INSERT
 WITH
     CHECK (true);
+
+-- Anyone can view order items if they can see the order
+DROP POLICY IF EXISTS "order_items_public_select" ON public.order_items;
+
+CREATE POLICY "order_items_public_select" ON public.order_items FOR
+SELECT USING (true);
 
 -- Owners can read/manage order items for their restaurant
 CREATE POLICY "order_items_owner_all" ON public.order_items FOR ALL USING (
