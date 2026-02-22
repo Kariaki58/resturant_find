@@ -1,47 +1,50 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 /**
  * POST /api/auth/create-user
- * Creates or updates the public.users profile row for the authenticated user.
+ * Creates or updates the public.users profile row.
  * Called immediately after supabase.auth.signUp() — no trigger required.
  *
- * Uses UPSERT so it is safe to call multiple times (idempotent).
+ * Why adminClient + userId in body (not session-based):
+ * When email confirmation is enabled, signUp() returns a user but NO active session.
+ * The session cookie is not set yet, so getUser() returns null → 401.
+ * Instead we accept userId from the body and verify it exists in auth.users via adminClient.
+ *
+ * Security: the admin client confirms the userId exists in auth.users before writing.
  */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { fullName, email, phone } = body;
+    const { fullName, email, phone, userId } = body;
 
-    // Validate required fields
-    if (!fullName || !email) {
+    if (!userId || !fullName || !email) {
       return NextResponse.json(
-        { error: 'fullName and email are required' },
+        { error: 'userId, fullName, and email are required' },
         { status: 400 }
       );
     }
 
-    // Get the authenticated user from the session cookie
-    const supabase = await createClient();
-    const {
-      data: { user: sessionUser },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !sessionUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Use the service-role admin client to bypass RLS for this trusted
-    // server-side operation. This is safe because we validate the session above.
     const adminClient = createAdminClient();
 
+    // Verify the userId actually exists in auth.users — prevents spoofing
+    const { data: authUser, error: authLookupError } =
+      await adminClient.auth.admin.getUserById(userId);
+
+    if (authLookupError || !authUser?.user) {
+      console.error('[create-user] Auth user not found:', userId, authLookupError);
+      return NextResponse.json(
+        { error: 'Auth user not found' },
+        { status: 404 }
+      );
+    }
+
+    // UPSERT the public.users profile — idempotent, safe to call multiple times
     const { data: upsertedUser, error: upsertError } = await adminClient
       .from('users')
       .upsert(
         {
-          id: sessionUser.id,
+          id: userId,
           full_name: fullName,
           email: email,
           phone: phone || '',
@@ -49,11 +52,7 @@ export async function POST(req: Request) {
           restaurant_id: null,
           updated_at: new Date().toISOString(),
         },
-        {
-          onConflict: 'id',
-          // Only update these fields if the row already exists
-          ignoreDuplicates: false,
-        }
+        { onConflict: 'id', ignoreDuplicates: false }
       )
       .select('id, full_name, email, phone, role, restaurant_id')
       .single();

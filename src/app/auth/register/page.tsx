@@ -72,11 +72,13 @@ export default function RegisterPage() {
       if (!authData.user) throw new Error('No user returned from sign up');
 
       // Step 2: Create the public.users profile row immediately via API.
-      // This is a single UPSERT — no trigger dependency, no polling, no retries.
+      // We pass userId explicitly because when email confirmation is required,
+      // there is no session cookie yet — the API validates userId via auth.admin.getUserById.
       const profileResponse = await fetch('/api/auth/create-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          userId: authData.user.id,
           fullName: values.fullName,
           email: values.email,
           phone: values.phone,

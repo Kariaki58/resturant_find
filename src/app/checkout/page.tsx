@@ -51,6 +51,7 @@ function CheckoutContent() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            userId: authUser.id,
             fullName: authUser.user_metadata?.full_name || 'Restaurant Owner',
             email: authUser.email || '',
             phone: authUser.user_metadata?.phone || '',
