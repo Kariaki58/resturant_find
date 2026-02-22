@@ -366,39 +366,67 @@ export default function SettingsPage() {
                     Upload a banner image that will be displayed at the top of your menu page (recommended: 1200x400px)
                   </p>
                   <div className="space-y-4">
+                    {/* Banner Preview/Display */}
                     {(bannerPreview || bannerUrl) && (
-                      <div className="relative w-full h-48 rounded-lg overflow-hidden border bg-muted">
+                      <div className="relative w-full h-48 rounded-lg overflow-hidden border bg-muted group">
                         <img
                           src={bannerPreview || bannerUrl || ''}
                           alt="Banner preview"
                           className="w-full h-full object-cover"
                         />
                         {bannerFile && (
-                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center gap-2">
                             <Button
                               type="button"
                               onClick={handleBannerUpload}
                               disabled={uploadingBanner}
                               size="sm"
                             >
-                              {uploadingBanner ? 'Uploading...' : 'Upload Banner'}
+                              {uploadingBanner ? 'Uploading...' : 'Upload New Banner'}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                setBannerFile(null);
+                                setBannerPreview(bannerUrl);
+                              }}
+                              disabled={uploadingBanner}
+                              size="sm"
+                            >
+                              Cancel
                             </Button>
                           </div>
                         )}
                         {!bannerFile && bannerUrl && (
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-2 right-2"
-                            onClick={handleRemoveBanner}
-                            disabled={uploadingBanner}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                          <div className="absolute top-2 right-2 flex gap-2">
+                            <label htmlFor="banner-upload-update" className="cursor-pointer">
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                className="bg-white/90 hover:bg-white"
+                              >
+                                <Upload className="h-4 w-4 mr-2" />
+                                Change
+                              </Button>
+                            </label>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              onClick={handleRemoveBanner}
+                              disabled={uploadingBanner}
+                              className="bg-red-500/90 hover:bg-red-500"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
                         )}
                       </div>
                     )}
+                    
+                    {/* Upload Area - Show when no banner exists */}
                     {!bannerPreview && !bannerUrl && (
                       <div className="flex items-center justify-center w-full h-48 border-2 border-dashed border-muted-foreground/20 rounded-lg hover:bg-muted/30 transition-colors">
                         <label htmlFor="banner-upload" className="flex flex-col items-center justify-center cursor-pointer w-full h-full">
@@ -415,9 +443,36 @@ export default function SettingsPage() {
                         </label>
                       </div>
                     )}
-                    {bannerFile && !bannerPreview && (
-                      <div className="text-sm text-muted-foreground">
-                        Selected: {bannerFile.name}
+                    
+                    {/* Hidden input for updating existing banner */}
+                    {bannerUrl && !bannerFile && (
+                      <Input
+                        id="banner-upload-update"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleBannerChange}
+                        className="hidden"
+                      />
+                    )}
+                    
+                    {/* File Info when new file selected */}
+                    {bannerFile && (
+                      <div className="text-sm text-muted-foreground flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <span className="flex items-center gap-2">
+                          <ImageIcon className="h-4 w-4" />
+                          Selected: {bannerFile.name}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setBannerFile(null);
+                            setBannerPreview(bannerUrl);
+                          }}
+                        >
+                          Clear
+                        </Button>
                       </div>
                     )}
                   </div>
