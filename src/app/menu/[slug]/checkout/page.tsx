@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { use } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, CreditCard, Upload, CheckCircle2, Building2, User, Phone, Mail, FileText, Image as ImageIcon, X, Truck, Store, Utensils } from 'lucide-react';
+import { ArrowLeft, CreditCard, Upload, CheckCircle2, Building2, User, Phone, Mail, FileText, Image as ImageIcon, X, Truck, Store, Utensils, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -276,12 +276,15 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <Skeleton className="h-12 w-64" />
+      <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 flex items-center justify-center p-4">
+        <div className="w-full max-w-4xl space-y-6">
+          <div className="flex gap-4 items-center">
+            <Skeleton className="h-10 w-10 rounded-full" />
+            <Skeleton className="h-10 w-64" />
+          </div>
           <div className="grid md:grid-cols-2 gap-6">
-            <Skeleton className="h-96" />
-            <Skeleton className="h-96" />
+            <Skeleton className="h-[400px] rounded-3xl" />
+            <Skeleton className="h-[400px] rounded-3xl" />
           </div>
         </div>
       </div>
@@ -308,361 +311,328 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href={`/menu/${slug}`}>
-              <ArrowLeft size={20} />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold font-headline">Checkout</h1>
-            <p className="text-muted-foreground">Complete your order from {restaurant.name}</p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" asChild className="rounded-full hover:bg-background/80">
+              <Link href={`/menu/${slug}`}>
+                <ArrowLeft size={20} />
+              </Link>
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold font-headline tracking-tight">Checkout</h1>
+              <p className="text-muted-foreground text-sm">Fine dining from {restaurant.name}</p>
+            </div>
           </div>
+          <Badge variant="outline" className="w-fit px-4 py-1.5 rounded-full border-primary/20 bg-primary/5 text-primary font-medium">
+            <Lock className="w-3.5 h-3.5 mr-2" /> Secure Checkout
+          </Badge>
         </div>
 
-        <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-6">
+        <form onSubmit={handleSubmit} className="grid lg:grid-cols-12 gap-8">
           {/* Left Column - Order Details & Payment */}
           <div className="space-y-6">
             {/* Order Summary */}
-            <Card className="border-none shadow-sm">
-              <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
+            <Card className="border-none shadow-xl shadow-foreground/5 rounded-3xl overflow-hidden">
+              <CardHeader className="bg-muted/30 pb-4">
+                <CardTitle className="text-xl">Your Order</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {cart.map((item) => (
-                  <div key={item.menuItem.id} className="flex items-center gap-4 pb-4 border-b last:border-0 last:pb-0">
-                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted shrink-0">
-                      {item.menuItem.image_url ? (
-                        <img
-                          src={item.menuItem.image_url}
-                          alt={item.menuItem.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <ImageIcon className="h-6 w-6 text-muted-foreground opacity-50" />
-                        </div>
-                      )}
+              <CardContent className="pt-6 space-y-4">
+                <div className="max-h-[300px] overflow-y-auto pr-2 custom-scrollbar space-y-4">
+                  {cart.map((item) => (
+                    <div key={item.menuItem.id} className="flex items-center gap-4 pb-4 border-b last:border-0 last:pb-0">
+                      <div className="w-16 h-16 rounded-2xl overflow-hidden bg-muted shrink-0 shadow-inner">
+                        {item.menuItem.image_url ? (
+                          <img
+                            src={item.menuItem.image_url}
+                            alt={item.menuItem.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <ImageIcon className="h-6 w-6 text-muted-foreground opacity-30" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold truncate text-sm">{item.menuItem.name}</h4>
+                        <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-sm text-primary">{formatCurrency(item.menuItem.price * item.quantity)}</p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-bold truncate">{item.menuItem.name}</h4>
-                      <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold">{formatCurrency(item.menuItem.price * item.quantity)}</p>
-                    </div>
-                  </div>
-                ))}
-                <div className="pt-4 border-t">
+                  ))}
+                </div>
+                <div className="pt-4 border-t-2 border-dashed">
                   <div className="flex justify-between items-center">
-                    <span className="text-lg font-bold">Total</span>
-                    <span className="text-2xl font-bold text-primary">{formatCurrency(getTotal())}</span>
+                    <span className="text-sm font-medium text-muted-foreground">Subtotal</span>
+                    <span className="text-xl font-black text-foreground">{formatCurrency(getTotal())}</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Customer Information */}
-            <Card className="border-none shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User size={20} />
-                  Customer Information
+            <Card className="border-none shadow-xl shadow-foreground/5 rounded-3xl overflow-hidden">
+              <CardHeader className="bg-muted/30">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <User size={18} className="text-primary" />
+                  Your Information
                 </CardTitle>
-                <CardDescription>We'll use this to contact you about your order</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name *</Label>
-                  <Input
-                    id="fullName"
-                    value={formData.fullName}
-                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                    required
-                    placeholder="John Doe"
-                  />
+              <CardContent className="pt-6 space-y-4">
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName" className="text-xs font-bold uppercase tracking-wider opacity-70">Full Name *</Label>
+                    <Input
+                      id="fullName"
+                      value={formData.fullName}
+                      onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                      required
+                      placeholder="Enter your name"
+                      className="rounded-xl bg-muted/30 border-none focus-visible:ring-primary"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-xs font-bold uppercase tracking-wider opacity-70">Phone Number *</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      required
+                      placeholder="+234..."
+                      className="rounded-xl bg-muted/30 border-none focus-visible:ring-primary"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email Address *</Label>
+                  <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider opacity-70">Email Address *</Label>
                   <Input
                     id="email"
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     required
-                    placeholder="john@example.com"
+                    placeholder="your@email.com"
+                    className="rounded-xl bg-muted/30 border-none focus-visible:ring-primary"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number *</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    required
-                    placeholder="+234 800 000 0000"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="note">Special Instructions (Optional)</Label>
+                  <Label htmlFor="note" className="text-xs font-bold uppercase tracking-wider opacity-70">Special Requests</Label>
                   <Textarea
                     id="note"
                     value={formData.note}
                     onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                    placeholder="Any special requests or notes for your order..."
-                    rows={3}
+                    placeholder="Extra spices, allergies, etc..."
+                    rows={2}
+                    className="rounded-xl bg-muted/30 border-none focus-visible:ring-primary resize-none"
                   />
                 </div>
               </CardContent>
             </Card>
 
             {/* Order Type Selection */}
-            <Card className="border-none shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Utensils size={20} />
-                  Order Type
+            <Card className="border-none shadow-xl shadow-foreground/5 rounded-3xl overflow-hidden">
+              <CardHeader className="bg-muted/30">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Utensils size={18} className="text-primary" />
+                  How would you like your meal?
                 </CardTitle>
-                <CardDescription>Choose how you'd like to receive your order</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-3 gap-3">
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, deliveryMethod: 'dine_in' })}
-                    className={`p-4 rounded-lg border-2 transition-all ${
+                    className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all duration-300 ${
                       formData.deliveryMethod === 'dine_in'
-                        ? 'border-primary bg-primary/10'
-                        : 'border-muted hover:border-primary/50'
+                        ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10 ring-1 ring-primary/20'
+                        : 'border-muted bg-white hover:border-primary/30'
                     }`}
                   >
-                    <Utensils className="mx-auto mb-2 h-6 w-6" />
-                    <p className="font-bold">Dine In</p>
-                    <p className="text-xs text-muted-foreground">Eat at restaurant</p>
+                    <div className={`p-2 rounded-full mb-2 ${formData.deliveryMethod === 'dine_in' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                      <Utensils size={20} />
+                    </div>
+                    <span className="font-bold text-sm">Dine In</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, deliveryMethod: 'pickup' })}
-                    className={`p-4 rounded-lg border-2 transition-all ${
+                    className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all duration-300 ${
                       formData.deliveryMethod === 'pickup'
-                        ? 'border-primary bg-primary/10'
-                        : 'border-muted hover:border-primary/50'
+                        ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10 ring-1 ring-primary/20'
+                        : 'border-muted bg-white hover:border-primary/30'
                     }`}
                   >
-                    <Store className="mx-auto mb-2 h-6 w-6" />
-                    <p className="font-bold">Pickup</p>
-                    <p className="text-xs text-muted-foreground">Collect at restaurant</p>
+                    <div className={`p-2 rounded-full mb-2 ${formData.deliveryMethod === 'pickup' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                      <Store size={20} />
+                    </div>
+                    <span className="font-bold text-sm">Pickup</span>
                   </button>
                   {restaurant.delivery_enabled ? (
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, deliveryMethod: 'delivery' })}
-                      className={`p-4 rounded-lg border-2 transition-all ${
+                      className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all duration-300 ${
                         formData.deliveryMethod === 'delivery'
-                          ? 'border-primary bg-primary/10'
-                          : 'border-muted hover:border-primary/50'
+                          ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10 ring-1 ring-primary/20'
+                          : 'border-muted bg-white hover:border-primary/30'
                       }`}
                     >
-                      <Truck className="mx-auto mb-2 h-6 w-6" />
-                      <p className="font-bold">Delivery</p>
-                      <p className="text-xs text-muted-foreground">Deliver to address</p>
+                      <div className={`p-2 rounded-full mb-2 ${formData.deliveryMethod === 'delivery' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                        <Truck size={20} />
+                      </div>
+                      <span className="font-bold text-sm">Delivery</span>
                     </button>
-                  ) : (
-                    <div className="p-4 rounded-lg border-2 border-muted bg-muted/30 opacity-50 cursor-not-allowed">
-                      <Truck className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
-                      <p className="font-bold text-muted-foreground">Delivery</p>
-                      <p className="text-xs text-muted-foreground">Not available</p>
-                    </div>
-                  )}
+                  ) : null}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Payment Information */}
-            <Card className="border-none shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard size={20} />
-                  Payment Information
+            {/* Payment Verification (Mobile Optimization: Reordered for flow) */}
+            <Card className="border-none shadow-xl shadow-foreground/5 rounded-3xl overflow-hidden">
+              <CardHeader className="bg-muted/30">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <CreditCard size={18} className="text-primary" />
+                  Payment Verification
                 </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+              </CardHeader>
+              <CardContent className="pt-6 space-y-4">
+                <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="paymentReference">Payment Reference *</Label>
+                    <Label htmlFor="paymentReference" className="text-xs font-bold uppercase tracking-wider opacity-70">Payment Ref *</Label>
                     <Input
                       id="paymentReference"
                       value={formData.paymentReference}
                       onChange={(e) => setFormData({ ...formData, paymentReference: e.target.value })}
                       required
-                      placeholder="Transaction reference or receipt number"
+                      placeholder="Ref number"
+                      className="rounded-xl bg-muted/30 border-none"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Enter the transaction reference from your bank transfer
-                    </p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="buyerTransferName">Name on Transfer *</Label>
+                    <Label htmlFor="buyerTransferName" className="text-xs font-bold uppercase tracking-wider opacity-70">Sender Name *</Label>
                     <Input
                       id="buyerTransferName"
                       value={formData.buyerTransferName}
                       onChange={(e) => setFormData({ ...formData, buyerTransferName: e.target.value })}
                       required
-                      placeholder="Name as it appears on the transfer"
+                      placeholder="Who transfered?"
+                      className="rounded-xl bg-muted/30 border-none"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      The name you used when making the bank transfer
-                    </p>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="paymentProof">Payment Proof (Screenshot) *</Label>
-                    <div className="space-y-3">
-                      <Input
-                        id="paymentProof"
-                        type="file"
-                        accept="image/jpeg,image/jpg,image/png,image/webp"
-                        onChange={handlePaymentProofChange}
-                        className="cursor-pointer"
-                        required
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Upload a screenshot of your payment receipt. Max 5MB. Formats: JPEG, PNG, WebP
-                      </p>
-                      {paymentProofPreview && (
-                        <div className="relative w-full h-48 border rounded-lg overflow-hidden bg-muted">
-                          <img
-                            src={paymentProofPreview}
-                            alt="Payment proof preview"
-                            className="w-full h-full object-contain"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-2 right-2"
-                            onClick={() => {
-                              setPaymentProofFile(null);
-                              setPaymentProofPreview(null);
-                            }}
-                          >
-                            <X size={16} />
-                          </Button>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="paymentProof" className="text-xs font-bold uppercase tracking-wider opacity-70">Proof of Payment *</Label>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-center w-full">
+                      <label htmlFor="paymentProof" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-muted-foreground/20 rounded-2xl cursor-pointer hover:bg-muted/30 transition-colors relative overflow-hidden group">
+                        {paymentProofPreview ? (
+                          <img src={paymentProofPreview} alt="Preview" className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity" />
+                        ) : null}
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6 relative z-10">
+                          <Upload className={`w-8 h-8 mb-3 ${paymentProofPreview ? 'text-white' : 'text-muted-foreground/50'}`} />
+                          <p className={`text-xs font-medium ${paymentProofPreview ? 'text-white drop-shadow-md' : 'text-muted-foreground'}`}>
+                            {paymentProofFile ? paymentProofFile.name : 'Click to upload receipt'}
+                          </p>
                         </div>
-                      )}
+                        <Input
+                          id="paymentProof"
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePaymentProofChange}
+                          className="hidden"
+                          required={!paymentProofPreview}
+                        />
+                      </label>
                     </div>
                   </div>
-                </CardContent>
+                </div>
+              </CardContent>
             </Card>
           </div>
 
-          {/* Right Column - Bank Details & Submit */}
-          <div className="space-y-6">
-            {/* Bank Account Details */}
-            <Card className="border-none shadow-sm bg-primary/5 border-primary/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 size={20} className="text-primary" />
-                  Bank Account Details
-                </CardTitle>
-                <CardDescription>Transfer the exact amount to this account</CardDescription>
+          <div className="lg:col-span-5 space-y-6">
+            {/* Bank Account Details - Sticky on Desktop */}
+            <Card className="border-none shadow-2xl shadow-primary/10 rounded-3xl overflow-hidden bg-primary text-white lg:sticky lg:top-24">
+              <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                <Building2 size={120} />
+              </div>
+              <CardHeader className="relative">
+                <CardTitle className="text-xl">Payment Details</CardTitle>
+                <CardDescription className="text-white/70">Please transfer exactly {formatCurrency(getTotal())}</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-1">
-                  <Label className="text-muted-foreground">Bank Name</Label>
-                  <p className="text-lg font-bold">{restaurant.bank_name}</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-muted-foreground">Account Number</Label>
-                  <div className="flex items-center gap-2">
-                    <p className="text-lg font-bold font-mono">{restaurant.account_number}</p>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        navigator.clipboard.writeText(restaurant.account_number);
-                        toast({
-                          title: 'Copied!',
-                          description: 'Account number copied to clipboard',
-                        });
-                      }}
-                    >
-                      Copy
-                    </Button>
+              <CardContent className="space-y-6 relative pt-2">
+                <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm space-y-4">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Bank Name</p>
+                    <p className="text-lg font-bold">{restaurant.bank_name}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Account Number</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-2xl font-black font-mono tracking-tighter">{restaurant.account_number}</p>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="rounded-full bg-white text-primary hover:bg-blue-50 h-8 font-bold"
+                        onClick={() => {
+                          navigator.clipboard.writeText(restaurant.account_number);
+                          toast({ title: 'Copied!', description: 'Account number saved' });
+                        }}
+                      >
+                        Copy
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Account Name</p>
+                    <p className="text-lg font-bold">{restaurant.account_name}</p>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-muted-foreground">Account Name</Label>
-                  <p className="text-lg font-bold">{restaurant.account_name}</p>
-                </div>
-                <div className="pt-4 border-t">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Amount to Transfer</span>
-                    <span className="text-2xl font-bold text-primary">{formatCurrency(getTotal())}</span>
+
+                <div className="space-y-4">
+                  <p className="text-sm font-bold uppercase tracking-widest opacity-70">Steps to finish:</p>
+                  <div className="grid gap-3">
+                    {[
+                      { step: 1, text: "Copy the account details" },
+                      { step: 2, text: "Make the bank transfer" },
+                      { step: 3, text: "Upload the receipt below" }
+                    ].map((s) => (
+                      <div key={s.step} className="flex items-center gap-3">
+                        <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-black">{s.step}</div>
+                        <p className="text-xs font-medium">{s.text}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
+
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full h-14 text-lg font-black rounded-2xl bg-white text-primary hover:bg-blue-50 shadow-lg"
+                  disabled={submitting || uploadingProof}
+                >
+                  {submitting || uploadingProof ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                      Processing...
+                    </div>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="mr-2 h-5 w-5" />
+                      SUBMIT ORDER
+                    </>
+                  )}
+                </Button>
+                
+                <p className="text-[10px] text-center text-white/50 px-4">
+                  Our system will verify your payment within 1-5 minutes of submission.
+                </p>
               </CardContent>
             </Card>
-
-            {/* Order Instructions */}
-            <Card className="border-none shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText size={20} />
-                  How to Complete Your Order
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
-                    1
-                  </div>
-                  <p>Transfer <strong>{formatCurrency(getTotal())}</strong> to the bank account above</p>
-                </div>
-                <div className="flex gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
-                    2
-                  </div>
-                  <p>Fill in your customer information and payment details</p>
-                </div>
-                <div className="flex gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
-                    3
-                  </div>
-                  <p>Upload a screenshot of your payment receipt</p>
-                </div>
-                <div className="flex gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
-                    4
-                  </div>
-                  <p>Submit your order. We'll verify and confirm it!</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              size="lg"
-              className="w-full h-14 text-lg font-bold rounded-xl"
-              disabled={submitting || uploadingProof}
-            >
-              {submitting || uploadingProof ? (
-                <>
-                  <Upload className="mr-2 h-5 w-5 animate-spin" />
-                  {uploadingProof ? 'Uploading...' : 'Placing Order...'}
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="mr-2 h-5 w-5" />
-                  Place Order
-                </>
-              )}
-            </Button>
-
-            <p className="text-xs text-center text-muted-foreground">
-              By placing this order, you agree to our terms and conditions. Your order will be confirmed after payment verification.
-            </p>
           </div>
         </form>
       </div>

@@ -19,14 +19,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
     }
 
-    // Check if slug is already taken
+    // Check if name or slug is already taken
     const { data: existingRestaurant } = await supabase
       .from('restaurants')
-      .select('id')
-      .eq('slug', slug)
-      .single();
+      .select('id, name, slug')
+      .or(`name.eq."${restaurantName}",slug.eq."${slug}"`)
+      .maybeSingle();
 
     if (existingRestaurant) {
+      if (existingRestaurant.name === restaurantName) {
+        return NextResponse.json({ error: 'A restaurant with this name already exists' }, { status: 400 });
+      }
       return NextResponse.json({ error: 'This restaurant slug is already taken' }, { status: 400 });
     }
 

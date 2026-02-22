@@ -77,10 +77,12 @@ function CheckoutContent() {
         description: 'Your payment could not be processed. Please try again.',
         variant: 'destructive',
       });
-    } else if (error === 'slug_taken') {
+    } else if (error === 'slug_taken' || error === 'name_taken') {
       toast({
         title: 'Restaurant name taken',
-        description: 'That restaurant URL is already in use. Please choose a different name.',
+        description: error === 'name_taken' 
+          ? 'That restaurant name is already in use. Please choose a different name.'
+          : 'That restaurant URL is already in use. Please choose a different name.',
         variant: 'destructive',
       });
     } else if (error === 'restaurant_creation_failed') {
@@ -140,52 +142,62 @@ function CheckoutContent() {
 
   if (!user || !profileReady) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="space-y-4 text-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground animate-pulse">Loading secure checkout...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/10 py-8 px-4 sm:py-12">
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Complete Your Registration</h1>
-          <p className="text-muted-foreground">Set up your restaurant and start your subscription</p>
+        <div className="text-center mb-10">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-3 font-headline tracking-tight">Complete Your Registration</h1>
+          <p className="text-muted-foreground text-lg">Set up your restaurant and start your journey</p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <div className="flex items-center gap-3 p-4 bg-primary/10 rounded-xl">
-            <CheckCircle2 className="text-primary" size={24} />
+        {/* Step Indicator - Refined for Mobile */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-10">
+          <div className="flex-1 flex items-center gap-4 p-4 bg-primary/5 rounded-2xl border border-primary/10">
+            <div className="shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+              <CheckCircle2 size={22} />
+            </div>
             <div>
-              <p className="font-bold text-sm">Account Created</p>
+              <p className="font-bold text-sm leading-none mb-1">Account Created</p>
               <p className="text-xs text-muted-foreground">Step 1 of 3</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 p-4 bg-primary/10 rounded-xl border-2 border-primary">
-            <CreditCard className="text-primary" size={24} />
+          <div className="flex-1 flex items-center gap-4 p-4 bg-primary/10 rounded-2xl border-2 border-primary shadow-sm shadow-primary/10 ring-1 ring-primary/20">
+            <div className="shrink-0 w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white">
+              <CreditCard size={22} />
+            </div>
             <div>
-              <p className="font-bold text-sm">Restaurant Setup</p>
-              <p className="text-xs text-muted-foreground">Step 2 of 3</p>
+              <p className="font-bold text-sm leading-none mb-1">Restaurant Setup</p>
+              <p className="text-xs text-primary/80 font-medium">Step 2 of 3</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 p-4 bg-muted rounded-xl">
-            <ShieldCheck className="text-muted-foreground" size={24} />
+          <div className="flex-1 flex items-center gap-4 p-4 bg-muted/50 rounded-2xl border border-border/50">
+            <div className="shrink-0 w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+              <ShieldCheck size={22} />
+            </div>
             <div>
-              <p className="font-bold text-sm">Payment</p>
+              <p className="font-bold text-sm leading-none mb-1">Payment</p>
               <p className="text-xs text-muted-foreground">Step 3 of 3</p>
             </div>
           </div>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="md:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Restaurant Information</CardTitle>
-                <CardDescription>Enter your restaurant details</CardDescription>
+        <div className="grid lg:grid-cols-12 gap-8 items-start">
+          <div className="lg:col-span-7 space-y-6">
+            <Card className="border-none shadow-xl shadow-foreground/5 rounded-3xl overflow-hidden">
+              <CardHeader className="bg-muted/30 pb-6">
+                <CardTitle className="text-2xl font-headline">Restaurant Details</CardTitle>
+                <CardDescription>Enter the basic information for your restaurant</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-8">
                 {searchParams.get('error') === 'payment_failed' && (
                   <Alert variant="destructive" className="mb-4">
                     <AlertCircle className="h-4 w-4" />
@@ -194,11 +206,13 @@ function CheckoutContent() {
                     </AlertDescription>
                   </Alert>
                 )}
-                {searchParams.get('error') === 'slug_taken' && (
+                {(searchParams.get('error') === 'slug_taken' || searchParams.get('error') === 'name_taken') && (
                   <Alert variant="destructive" className="mb-4">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      That restaurant URL is already taken. Please choose a different name.
+                      {searchParams.get('error') === 'name_taken'
+                        ? 'That restaurant name is already taken. Please choose a different name.'
+                        : 'That restaurant URL is already taken. Please choose a different name.'}
                     </AlertDescription>
                   </Alert>
                 )}
@@ -261,53 +275,80 @@ function CheckoutContent() {
                       required
                     />
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'Processing...' : 'Proceed to Payment'}
+                  <Button type="submit" className="w-full h-12 text-lg font-bold rounded-xl mt-4" disabled={loading}>
+                    {loading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        Processing...
+                      </div>
+                    ) : 'Proceed to Payment'}
                   </Button>
                 </form>
               </CardContent>
             </Card>
           </div>
 
-          <div>
-            <Card className="bg-primary text-white border-none">
-              <CardHeader>
-                <CardTitle className="text-white">Subscription Plan</CardTitle>
+          <div className="lg:col-span-5">
+            <Card className="bg-primary text-white border-none shadow-2xl shadow-primary/20 rounded-3xl overflow-hidden relative">
+              <div className="absolute top-0 right-0 p-8 opacity-10">
+                <CreditCard size={120} />
+              </div>
+              <CardHeader className="relative">
+                <Badge className="w-fit mb-2 bg-white/20 hover:bg-white/30 text-white border-none">Most Popular</Badge>
+                <CardTitle className="text-white text-2xl">Premium Plan</CardTitle>
+                <CardDescription className="text-white/70">Everything you need to run your restaurant</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6 relative">
                 <div>
-                  <p className="text-3xl font-bold">₦3,800</p>
-                  <p className="text-sm opacity-80">per month</p>
+                  <p className="text-5xl font-black flex items-baseline gap-1">
+                    <span className="text-2xl font-bold">₦</span>3,800
+                    <span className="text-lg font-normal opacity-70">/mo</span>
+                  </p>
                 </div>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 size={16} />
-                    <span>Unlimited Orders</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 size={16} />
-                    <span>QR Table System</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 size={16} />
-                    <span>Bank Transfer Verification</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 size={16} />
-                    <span>Menu Management</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 size={16} />
-                    <span>Real-time Sales</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 size={16} />
-                    <span>Multi-staff Support</span>
-                  </li>
-                </ul>
-                <p className="text-xs opacity-80 pt-4 border-t border-white/20">
-                  Cancel anytime
-                </p>
+                
+                <div className="space-y-4">
+                  <p className="text-sm font-bold uppercase tracking-wider opacity-70">What's included:</p>
+                  <ul className="space-y-3">
+                    <li className="flex items-center gap-3">
+                      <div className="shrink-0 w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
+                        <CheckCircle2 size={12} />
+                      </div>
+                      <span className="text-sm">Unlimited Orders & Customers</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <div className="shrink-0 w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
+                        <CheckCircle2 size={12} />
+                      </div>
+                      <span className="text-sm">Interactive QR Table System</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <div className="shrink-0 w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
+                        <CheckCircle2 size={12} />
+                      </div>
+                      <span className="text-sm">Bank Transfer Automation</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <div className="shrink-0 w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
+                        <CheckCircle2 size={12} />
+                      </div>
+                      <span className="text-sm">Rich Menu Management</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <div className="shrink-0 w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
+                        <CheckCircle2 size={12} />
+                      </div>
+                      <span className="text-sm">Real-time Sales Analytics</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="pt-6 border-t border-white/10 flex items-center justify-between">
+                  <span className="text-xs opacity-70">Secure Checkout by Flutterwave</span>
+                  <div className="flex gap-2">
+                    <div className="w-8 h-5 bg-white/10 rounded flex items-center justify-center text-[8px] font-bold">VISA</div>
+                    <div className="w-8 h-5 bg-white/10 rounded flex items-center justify-center text-[8px] font-bold">MC</div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>

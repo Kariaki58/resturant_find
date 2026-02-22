@@ -119,20 +119,28 @@ export default function SettingsPage() {
     try {
       if (!restaurant) return;
 
-      // Check if slug is already taken by another restaurant
+      // Check if name or slug is already taken by another restaurant
       const { data: existing } = await supabase
         .from('restaurants')
-        .select('id')
-        .eq('slug', restaurantForm.slug)
+        .select('id, name, slug')
+        .or(`name.eq."${restaurantForm.name}",slug.eq."${restaurantForm.slug}"`)
         .neq('id', restaurant.id)
-        .single();
+        .maybeSingle();
 
       if (existing) {
-        toast({
-          title: 'Error',
-          description: 'This slug is already taken by another restaurant',
-          variant: 'destructive',
-        });
+        if (existing.name === restaurantForm.name) {
+          toast({
+            title: 'Error',
+            description: 'This restaurant name is already taken',
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Error',
+            description: 'This slug is already taken by another restaurant',
+            variant: 'destructive',
+          });
+        }
         setSaving(false);
         return;
       }

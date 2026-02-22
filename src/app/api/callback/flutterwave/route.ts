@@ -122,14 +122,18 @@ export async function GET(req: Request) {
         return NextResponse.redirect(new URL('/dashboard', req.url));
       }
 
-      // ── 5. Check slug uniqueness ─────────────────────────────────────────
+      // ── 5. Check name and slug uniqueness ───────────────────────────────
       const { data: existingRestaurant } = await adminClient
         .from('restaurants')
-        .select('id')
-        .eq('slug', slug)
+        .select('id, name, slug')
+        .or(`name.eq."${restaurantName}",slug.eq."${slug}"`)
         .maybeSingle();
 
       if (existingRestaurant) {
+        if (existingRestaurant.name === restaurantName) {
+          console.error('[flutterwave-callback] Name already taken:', restaurantName);
+          return NextResponse.redirect(new URL('/checkout?error=name_taken', req.url));
+        }
         console.error('[flutterwave-callback] Slug already taken:', slug);
         return NextResponse.redirect(new URL('/checkout?error=slug_taken', req.url));
       }

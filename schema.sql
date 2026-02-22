@@ -14,7 +14,7 @@
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS public.restaurants (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
-    name TEXT NOT NULL,
+    name TEXT NOT NULL UNIQUE,
     slug TEXT NOT NULL UNIQUE,
     description TEXT,
     logo_url TEXT,
