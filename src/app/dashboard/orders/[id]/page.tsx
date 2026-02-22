@@ -242,7 +242,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
   if (loading) {
     return (
-      <div className="p-6 space-y-8 max-w-7xl mx-auto">
+      <div className="p-4 sm:p-6 lg:p-8 space-y-8 w-full">
         <Skeleton className="h-12 w-64" />
         <div className="grid md:grid-cols-3 gap-8">
           <div className="md:col-span-2 space-y-8">
@@ -260,7 +260,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
   if (!order) {
     return (
-      <div className="p-6 space-y-8 max-w-7xl mx-auto">
+      <div className="p-4 sm:p-6 lg:p-8 space-y-8 w-full">
         <Card>
           <CardContent className="pt-6 text-center">
             <p className="text-muted-foreground mb-4">Order not found</p>
@@ -274,7 +274,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   }
 
   return (
-    <div className="p-6 space-y-8 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-8 w-full">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild className="rounded-full">
           <Link href="/dashboard/orders">
