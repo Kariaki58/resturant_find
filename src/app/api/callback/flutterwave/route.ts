@@ -96,21 +96,21 @@ export async function GET(req: Request) {
         return NextResponse.redirect(new URL('/checkout?error=missing_data&tx_ref=' + txRef, req.url));
       }
 
-      // Check if user exists (with quick retry for trigger timing)
+      // Check if user exists (with retry for trigger timing)
       let existingUser = null;
       let attempts = 0;
-      const maxAttempts = 3; // Reduced from 5
+      const maxAttempts = 5; // Increased attempts
       
       while (attempts < maxAttempts && !existingUser) {
         if (attempts > 0) {
-          await new Promise(resolve => setTimeout(resolve, 200)); // Reduced delay from 500ms
+          await new Promise(resolve => setTimeout(resolve, 500)); // Wait longer between attempts
         }
         
         const { data: userData } = await adminClient
-        .from('users')
-        .select('id, restaurant_id')
-        .eq('id', userId)
-        .maybeSingle();
+          .from('users')
+          .select('id, restaurant_id')
+          .eq('id', userId)
+          .maybeSingle();
 
         if (userData) {
           existingUser = userData;
@@ -121,7 +121,7 @@ export async function GET(req: Request) {
 
       // If user doesn't exist, create it immediately
       if (!existingUser) {
-        console.log('User not found, creating user record immediately...');
+        console.log('User not found after retries, creating user record immediately...');
         try {
           const { data: authUser } = await adminClient.auth.admin.getUserById(userId);
           
@@ -141,18 +141,45 @@ export async function GET(req: Request) {
             
             if (newUser && !createError) {
               existingUser = newUser;
-              console.log('User created successfully');
+              console.log('User created successfully in callback');
             } else {
-              console.error('Failed to create user:', createError);
-              return NextResponse.redirect(new URL('/checkout?error=user_not_found', req.url));
+              console.error('Failed to create user in callback:', createError);
+              // Try one more time with a longer wait
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              const { data: retryUser } = await adminClient
+                .from('users')
+                .select('id, restaurant_id')
+                .eq('id', userId)
+                .maybeSingle();
+              
+              if (retryUser) {
+                existingUser = retryUser;
+                console.log('User found after retry');
+              } else {
+                console.error('User still not found after all retries');
+                return NextResponse.redirect(new URL('/checkout?error=user_not_found', req.url));
+              }
             }
           } else {
             console.error('User not found in auth.users:', userId);
             return NextResponse.redirect(new URL('/checkout?error=user_not_found', req.url));
           }
-        } catch (fallbackError) {
-          console.error('Error creating user:', fallbackError);
-        return NextResponse.redirect(new URL('/checkout?error=user_not_found', req.url));
+        } catch (fallbackError: any) {
+          console.error('Error creating user in callback:', fallbackError);
+          // Last attempt - check if user exists now
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          const { data: finalCheck } = await adminClient
+            .from('users')
+            .select('id, restaurant_id')
+            .eq('id', userId)
+            .maybeSingle();
+          
+          if (finalCheck) {
+            existingUser = finalCheck;
+            console.log('User found in final check');
+          } else {
+            return NextResponse.redirect(new URL('/checkout?error=user_not_found', req.url));
+          }
         }
       }
 

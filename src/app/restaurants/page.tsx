@@ -285,48 +285,6 @@ export default function RestaurantsPage() {
                     </AlertDescription>
                   </Alert>
                 )}
-
-                <p className="text-sm text-muted-foreground mb-6">
-                  If you just completed payment, your restaurant should be created automatically. 
-                  If it's not showing up, try the options below.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                  <Button 
-                    onClick={handleManualCreate}
-                    disabled={checking}
-                    className="w-full sm:w-auto"
-                  >
-                    {checking ? (
-                      <>
-                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        Creating...
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="mr-2 h-4 w-4" />
-                        {pendingRestaurant ? 'Link Restaurant' : 'Create Restaurant Manually'}
-                      </>
-                    )}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => checkForRestaurant(true)}
-                    disabled={checking}
-                    className="w-full sm:w-auto"
-                  >
-                    <RefreshCw className={`mr-2 h-4 w-4 ${checking ? 'animate-spin' : ''}`} />
-                    Check Again
-                  </Button>
-                  <Button variant="outline" asChild className="w-full sm:w-auto">
-                    <Link href="/checkout">
-                      <Plus className="mr-2 h-4 w-4" />
-                      New Checkout
-                    </Link>
-                  </Button>
-                  <Button variant="outline" asChild className="w-full sm:w-auto">
-                    <Link href="/dashboard/debug">Debug Info</Link>
-                  </Button>
-                </div>
               </div>
             </CardContent>
           </Card>

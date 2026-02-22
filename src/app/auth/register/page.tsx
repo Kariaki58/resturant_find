@@ -72,6 +72,9 @@ export default function RegisterPage() {
       if (authError) throw authError;
       if (!authData.user) throw new Error('No user returned from sign up');
 
+      // Check if email confirmation is required
+      const requiresEmailVerification = !authData.user.email_confirmed_at;
+
       // 2. Create user record in public.users table
       // The database trigger will automatically create the user record,
       // but we'll also call the API route to ensure it exists and update metadata
@@ -149,8 +152,18 @@ export default function RegisterPage() {
         }
       }
 
-      // 3. Redirect to onboarding
-      router.push('/checkout');
+      // 3. Redirect based on email verification status
+      if (requiresEmailVerification) {
+        // Email confirmation is required, redirect to verification page
+        router.push(`/auth/verify-email?email=${encodeURIComponent(values.email)}`);
+        toast({
+          title: 'Account created',
+          description: 'Please check your email to verify your account before continuing.',
+        });
+      } else {
+        // Email already confirmed, proceed to checkout
+        router.push('/checkout');
+      }
     } catch (error: any) {
       toast({
         title: 'Registration failed',

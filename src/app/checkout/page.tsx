@@ -33,6 +33,45 @@ function CheckoutContent() {
         router.push('/auth/login');
         return;
       }
+
+      // Check if user record exists in database, create if it doesn't
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!userData && !userError) {
+        // User record doesn't exist, try to create it
+        try {
+          const createUserResponse = await fetch('/api/auth/create-user', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              fullName: user.user_metadata?.full_name || 'Restaurant Owner',
+              email: user.email || '',
+              phone: user.user_metadata?.phone || '',
+              userId: user.id,
+            }),
+          });
+
+          const createUserData = await createUserResponse.json();
+          
+          if (!createUserResponse.ok && 
+              createUserData.message !== 'User already exists' &&
+              createUserData.message !== 'User created by trigger' &&
+              createUserData.message !== 'User created by trigger, updated' &&
+              createUserData.message !== 'User already exists, updated') {
+            // If creation fails, show error but don't block - let them try
+            console.error('Failed to create user record:', createUserData);
+          }
+        } catch (error) {
+          console.error('Error creating user record:', error);
+        }
+      }
+
       setUser(user);
     };
     getUser();
