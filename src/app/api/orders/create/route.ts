@@ -89,6 +89,17 @@ export async function POST(req: Request) {
       normalizedDeliveryMethod = 'pickup';
     }
 
+    // Append table number to note if order is from a scanned table
+    let finalNote = note || null;
+    if (tableNumber) {
+      const tableNote = `(order from table ${tableNumber})`;
+      if (finalNote) {
+        finalNote = `${finalNote} ${tableNote}`;
+      } else {
+        finalNote = tableNote;
+      }
+    }
+
     // Create order
     const { data: order, error: orderError } = await supabase
       .from('orders')
@@ -102,7 +113,7 @@ export async function POST(req: Request) {
         payment_reference: paymentInfo.paymentReference,
         payment_proof_url: paymentInfo.paymentProofUrl,
         buyer_transfer_name: paymentInfo.buyerTransferName,
-        note: note || null,
+        note: finalNote,
         delivery_method: normalizedDeliveryMethod,
       })
       .select()

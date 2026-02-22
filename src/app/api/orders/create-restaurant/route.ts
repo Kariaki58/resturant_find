@@ -76,6 +76,17 @@ export async function POST(req: Request) {
     // Determine order type
     const orderType = tableNumber ? 'dine_in' : 'preorder';
 
+    // Append table number to note if order is from a scanned table
+    let finalNote = note || null;
+    if (tableNumber) {
+      const tableNote = `(order from table ${tableNumber})`;
+      if (finalNote) {
+        finalNote = `${finalNote} ${tableNote}`;
+      } else {
+        finalNote = tableNote;
+      }
+    }
+
     // Create order (no payment proof required, status is confirmed)
     const { data: order, error: orderError } = await adminClient
       .from('orders')
@@ -89,7 +100,7 @@ export async function POST(req: Request) {
         payment_reference: null,
         payment_proof_url: null,
         buyer_transfer_name: customerName, // Store customer name here
-        note: note || null,
+        note: finalNote,
         delivery_method: tableNumber ? 'dine_in' : 'pickup',
       })
       .select()
