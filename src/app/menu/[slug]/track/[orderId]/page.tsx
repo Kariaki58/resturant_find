@@ -193,12 +193,12 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ slug: 
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold font-headline">Order Tracking</h1>
-            <p className="text-muted-foreground">Track your order status in real-time</p>
+            <h1 className="text-2xl sm:text-3xl font-bold font-headline">Order Tracking</h1>
+            <p className="text-sm sm:text-base text-muted-foreground text-balance">Track your order status in real-time</p>
           </div>
-          <Button variant="outline" asChild>
+          <Button variant="outline" asChild className="w-full sm:w-auto">
             <Link href={`/menu/${slug}`}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Menu
@@ -209,15 +209,15 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ slug: 
         {/* Order ID Card */}
         <Card className="border-none shadow-sm">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <CardTitle>Tracking Number: {order.id.slice(0, 8).toUpperCase()}</CardTitle>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center flex-wrap gap-2 mb-2">
+                  <CardTitle className="text-lg sm:text-xl truncate">Tracking Number: {order.id.slice(0, 8).toUpperCase()}</CardTitle>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleCopyTrackingNumber}
-                    className="h-8 w-8 p-0"
+                    className="h-8 w-8 p-0 shrink-0"
                     title="Copy tracking number"
                   >
                     {copied ? (
@@ -227,25 +227,25 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ slug: 
                     )}
                   </Button>
                 </div>
-                <CardDescription>
+                <CardDescription className="text-xs sm:text-sm">
                   Placed on {new Date(order.created_at).toLocaleString()}
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-3">
-                <Button variant="outline" onClick={handleDownloadReceipt}>
+              <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2 sm:gap-3">
+                <Button variant="outline" onClick={handleDownloadReceipt} className="text-xs sm:text-sm flex-1 sm:flex-none">
                   <Download className="mr-2 h-4 w-4" />
-                  Download Receipt
+                  Receipt
                 </Button>
-              <Badge className={`${
-                order.status === 'awaiting_confirmation' ? 'bg-orange-500' :
-                order.status === 'confirmed' ? 'bg-blue-500' :
-                order.status === 'preparing' ? 'bg-purple-500' :
-                order.status === 'ready' ? 'bg-green-500' :
-                order.status === 'completed' ? 'bg-green-600' :
-                'bg-gray-500'
-              } text-white`}>
-                {order.status.replace('_', ' ').toUpperCase()}
-              </Badge>
+                <Badge className={`${
+                  order.status === 'awaiting_confirmation' ? 'bg-orange-500' :
+                  order.status === 'confirmed' ? 'bg-blue-500' :
+                  order.status === 'preparing' ? 'bg-purple-500' :
+                  order.status === 'ready' ? 'bg-green-500' :
+                  order.status === 'completed' ? 'bg-green-600' :
+                  'bg-gray-500'
+                } text-white py-1 px-3 text-center justify-center whitespace-nowrap`}>
+                  {order.status.replace('_', ' ').toUpperCase()}
+                </Badge>
               </div>
             </div>
           </CardHeader>
