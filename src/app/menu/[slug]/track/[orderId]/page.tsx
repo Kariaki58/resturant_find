@@ -18,6 +18,9 @@ interface Order {
   status: string;
   total_amount: number;
   delivery_method: 'delivery' | 'pickup' | 'dine_in';
+  order_type: 'online' | 'preorder' | 'dine_in';
+  buyer_transfer_name: string | null;
+  payment_reference: string | null;
   note: string | null;
   created_at: string;
   restaurant?: {
@@ -77,6 +80,48 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ slug: 
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCopyTrackingNumber = async () => {
+    if (!orderId) return;
+    
+    try {
+      await navigator.clipboard.writeText(orderId);
+      setCopied(true);
+      toast({
+        title: 'Copied!',
+        description: 'Tracking number copied to clipboard',
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to copy tracking number',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDownloadReceipt = () => {
+    if (!order || !order.restaurant) return;
+
+    generateReceiptPDF({
+      restaurantName: order.restaurant.name,
+      orderId: order.id,
+      orderDate: order.created_at,
+      orderType: order.order_type,
+      customerName: order.buyer_transfer_name || undefined,
+      paymentReference: order.payment_reference || undefined,
+      orderItems: (order.order_items || []).map((item: any) => ({
+        quantity: item.quantity,
+        price: item.price,
+        menu_item: {
+          name: item.menu_item.name,
+        },
+      })),
+      totalAmount: order.total_amount,
+      note: order.note || undefined,
+    });
   };
 
   const getStatusSteps = () => {
