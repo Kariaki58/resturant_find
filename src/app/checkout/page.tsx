@@ -45,6 +45,12 @@ function CheckoutContent() {
         description: 'Your payment could not be processed. Please try again.',
         variant: 'destructive',
       });
+    } else if (error === 'user_not_found') {
+      toast({
+        title: 'Account setup incomplete',
+        description: 'Your account is still being set up. Please wait a moment and try again, or contact support if the issue persists.',
+        variant: 'destructive',
+      });
     }
   }, [router, supabase, searchParams, toast]);
 
@@ -168,6 +174,14 @@ function CheckoutContent() {
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
                       Payment could not be processed. Please try again or contact support.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {searchParams.get('error') === 'user_not_found' && (
+                  <Alert variant="destructive" className="mb-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Your account is still being set up. Please wait a moment and try again. If the issue persists, please contact support.
                     </AlertDescription>
                   </Alert>
                 )}

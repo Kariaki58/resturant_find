@@ -94,15 +94,71 @@ export async function GET(req: Request) {
         return NextResponse.redirect(new URL('/checkout?error=missing_data&tx_ref=' + txRef, req.url));
       }
 
-      // Verify user exists
-      const { data: existingUser, error: userCheckError } = await supabase
-        .from('users')
-        .select('id, restaurant_id')
-        .eq('id', userId)
-        .maybeSingle();
+      // Verify user exists with retry logic (trigger might still be creating the record)
+      let existingUser = null;
+      let userCheckError = null;
+      const maxUserCheckAttempts = 5;
+      
+      for (let attempt = 0; attempt < maxUserCheckAttempts; attempt++) {
+        if (attempt > 0) {
+          await new Promise(resolve => setTimeout(resolve, 500 * attempt));
+        }
+        
+        const result = await supabase
+          .from('users')
+          .select('id, restaurant_id')
+          .eq('id', userId)
+          .maybeSingle();
+        
+        existingUser = result.data;
+        userCheckError = result.error;
+        
+        if (existingUser) {
+          break; // User found
+        }
+        
+        // If it's not a "not found" error, break immediately
+        if (userCheckError && userCheckError.code !== 'PGRST116') {
+          break;
+        }
+      }
 
-      if (userCheckError || !existingUser) {
-        console.error('User not found:', userId, userCheckError);
+      // If user still doesn't exist, try to create it as fallback
+      if (!existingUser && !userCheckError) {
+        console.log('User not found in users table, attempting to create...');
+        try {
+          // Get user from auth to get email and metadata
+          const adminClient = (await import('@/lib/supabase/admin')).createAdminClient();
+          const { data: authUser } = await adminClient.auth.admin.getUserById(userId);
+          
+          if (authUser?.user) {
+            const { data: newUser, error: createError } = await adminClient
+              .from('users')
+              .insert({
+                id: userId,
+                full_name: authUser.user.user_metadata?.full_name || 'Restaurant Owner',
+                email: authUser.user.email || '',
+                phone: authUser.user.user_metadata?.phone || '',
+                role: 'restaurant_owner',
+                restaurant_id: null,
+              })
+              .select('id, restaurant_id')
+              .single();
+            
+            if (newUser && !createError) {
+              existingUser = newUser;
+              console.log('User created successfully as fallback');
+            } else {
+              console.error('Failed to create user as fallback:', createError);
+            }
+          }
+        } catch (fallbackError) {
+          console.error('Error in user creation fallback:', fallbackError);
+        }
+      }
+
+      if (!existingUser) {
+        console.error('User not found after retries and fallback:', userId, userCheckError);
         return NextResponse.redirect(new URL('/checkout?error=user_not_found', req.url));
       }
 
