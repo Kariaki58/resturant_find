@@ -72,20 +72,25 @@ export default function RestaurantMenuPage({ params }: { params: Promise<{ slug:
       setLoading(true);
       setError(null);
 
-      // Fetch restaurant by slug
+      // Fetch restaurant by slug (including banner_url)
       const { data: restaurantData, error: restaurantError } = await supabase
         .from('restaurants')
         .select('id, name, slug, banner_url')
         .eq('slug', slug)
         .maybeSingle();
 
-      if (restaurantError) throw restaurantError;
+      if (restaurantError) {
+        console.error('Error fetching restaurant:', restaurantError);
+        throw restaurantError;
+      }
+      
       if (!restaurantData) {
         setError('Restaurant not found');
         setLoading(false);
         return;
       }
 
+      console.log('Restaurant banner_url from database:', restaurantData.banner_url);
       setRestaurant(restaurantData);
 
       // Fetch categories
@@ -245,7 +250,6 @@ export default function RestaurantMenuPage({ params }: { params: Promise<{ slug:
     return (
       <div className="flex flex-col min-h-screen bg-white">
         <div className="h-64 relative overflow-hidden bg-gradient-to-br from-primary/20 to-primary/5">
-          <div className="absolute inset-0 bg-black/20" />
           <div className="absolute top-6 left-6 z-10">
             <Logo size="md" variant="white" />
           </div>
@@ -281,8 +285,8 @@ export default function RestaurantMenuPage({ params }: { params: Promise<{ slug:
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
-      {/* Hero Header with Banner */}
-      <div className="h-64 relative overflow-hidden bg-gradient-to-br from-primary/20 to-primary/5">
+      {/* Hero Header with Banner Background */}
+      <div className="h-64 relative overflow-hidden">
         {restaurant.banner_url ? (
           <>
             <img
@@ -290,10 +294,10 @@ export default function RestaurantMenuPage({ params }: { params: Promise<{ slug:
               alt={`${restaurant.name} banner`}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-black/30" />
+            <div className="absolute inset-0 bg-black/10" />
           </>
         ) : (
-          <div className="absolute inset-0 bg-black/20" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5" />
         )}
         <div className="absolute top-6 left-6 z-10">
           <Logo size="md" variant="white" />

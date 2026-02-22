@@ -236,21 +236,41 @@ export default function SettingsPage() {
         throw new Error(data.error || 'Failed to upload banner');
       }
 
-      // Update restaurant with banner URL
+      // Update restaurant with banner URL in database
       const { error: updateError } = await supabase
         .from('restaurants')
         .update({ banner_url: data.url })
         .eq('id', restaurant.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Error updating banner in database:', updateError);
+        throw updateError;
+      }
+
+      // Verify the update was successful
+      const { data: updatedRestaurant, error: verifyError } = await supabase
+        .from('restaurants')
+        .select('banner_url')
+        .eq('id', restaurant.id)
+        .single();
+
+      if (verifyError) {
+        console.error('Error verifying banner update:', verifyError);
+        throw verifyError;
+      }
+
+      console.log('Banner saved to database:', updatedRestaurant.banner_url);
 
       setBannerUrl(data.url);
+      setBannerPreview(data.url);
       setBannerFile(null);
       toast({
         title: 'Banner uploaded',
-        description: 'Your restaurant banner has been updated successfully',
+        description: 'Your restaurant banner has been saved and will appear on your menu page',
       });
-      fetchData();
+      
+      // Refresh data to ensure state is in sync
+      await fetchData();
     } catch (error: any) {
       toast({
         title: 'Upload failed',
