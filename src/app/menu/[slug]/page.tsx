@@ -300,7 +300,9 @@ export default function RestaurantMenuPage({ params }: { params: Promise<{ slug:
           <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5" />
         )}
         <div className="absolute top-6 left-6 z-10">
-          <Logo size="md" variant="white" />
+          <h2 className="text-2xl font-bold italic text-white drop-shadow-lg">
+            {restaurant.name}
+          </h2>
         </div>
       </div>
 
