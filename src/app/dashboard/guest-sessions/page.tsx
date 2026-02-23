@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShoppingBag, CheckCircle2, Clock, CreditCard, Filter, Search, ChevronDown, ChevronUp, Utensils, XCircle, AlertCircle } from 'lucide-react';
+import { ShoppingBag, CheckCircle2, Clock, CreditCard, Filter, Search, ChevronDown, ChevronUp, Utensils, XCircle, AlertCircle, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -208,6 +208,31 @@ export default function GuestSessionsPage() {
       toast({
         title: 'Error',
         description: error.message || 'Failed to confirm removal',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const rejectRemoval = async (orderId: string) => {
+    try {
+      const { error } = await supabase
+        .from('guest_orders')
+        .update({ status: 'pending' })
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Removal Rejected',
+        description: 'Item will remain in the order.',
+      });
+
+      fetchSessions();
+    } catch (error: any) {
+      console.error('Error rejecting removal:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to reject removal',
         variant: 'destructive',
       });
     }
@@ -482,15 +507,26 @@ export default function GuestSessionsPage() {
                                         </p>
                                       </div>
                                       {isPendingRemoval && (
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => confirmRemoval(order.id)}
-                                          className="text-orange-600 border-orange-300 hover:bg-orange-50"
-                                        >
-                                          <XCircle className="mr-1 h-3 w-3" />
-                                          Confirm Removal
-                                        </Button>
+                                        <div className="flex gap-2">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => rejectRemoval(order.id)}
+                                            className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                                          >
+                                            <X className="mr-1 h-3 w-3" />
+                                            Reject
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => confirmRemoval(order.id)}
+                                            className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                                          >
+                                            <XCircle className="mr-1 h-3 w-3" />
+                                            Confirm Removal
+                                          </Button>
+                                        </div>
                                       )}
                                     </div>
                                   </div>

@@ -15,7 +15,7 @@ import {
   SidebarFooter,
   useSidebar
 } from "@/components/ui/sidebar";
-import { Utensils, ShoppingBag, LayoutDashboard, Settings, LogOut, Smartphone, User, CreditCard, AlertCircle, BarChart3, Users, Receipt } from 'lucide-react';
+import { Utensils, ShoppingBag, LayoutDashboard, Settings, LogOut, Smartphone, User, CreditCard, AlertCircle, BarChart3, Users, Receipt, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -87,6 +87,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Check if current path is billing page (should be accessible even if expired)
   const isBillingPage = pathname === '/dashboard/billing';
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
   useEffect(() => {
     const fetchUserInfo = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -148,6 +157,227 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
     fetchUserInfo();
   }, [supabase]);
+
+  // Real-time notifications for all restaurant activities
+  useEffect(() => {
+    let restaurantId: string | null = null;
+    const channels: any[] = [];
+
+    const setupNotifications = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: userData } = await supabase
+        .from('users')
+        .select('restaurant_id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!userData?.restaurant_id) return;
+
+      restaurantId = userData.restaurant_id;
+
+      // Get guest table IDs for this restaurant
+      const { data: guestTables } = await supabase
+        .from('guest_tables')
+        .select('id')
+        .eq('restaurant_id', restaurantId);
+
+      const guestTableIds = guestTables?.map(t => t.id) || [];
+
+      // 1. Subscribe to orders table
+      const ordersChannel = supabase
+        .channel(`orders-notifications-${restaurantId}`)
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'orders',
+            filter: `restaurant_id=eq.${restaurantId}`
+          },
+          (payload: any) => {
+            if (payload.eventType === 'INSERT') {
+              const order = payload.new;
+              toast({
+                title: '🆕 New Order',
+                description: `Order #${order.id.slice(0, 8).toUpperCase()} - ${order.order_type.replace('_', ' ')} - ${formatCurrency(Number(order.total_amount))}`,
+                duration: 5000,
+              });
+            } else if (payload.eventType === 'UPDATE') {
+              const order = payload.new;
+              const oldOrder = payload.old;
+              if (order.status !== oldOrder.status) {
+                const statusMessages: Record<string, string> = {
+                  'awaiting_confirmation': '⏳ Awaiting Payment Confirmation',
+                  'confirmed': '✅ Order Confirmed',
+                  'preparing': '👨‍🍳 Order Being Prepared',
+                  'ready': '🎉 Order Ready',
+                  'completed': '✨ Order Completed',
+                  'cancelled': '❌ Order Cancelled',
+                };
+                toast({
+                  title: statusMessages[order.status] || '📝 Order Updated',
+                  description: `Order #${order.id.slice(0, 8).toUpperCase()} status changed`,
+                  duration: 5000,
+                });
+              }
+            }
+          }
+        )
+        .subscribe();
+
+      channels.push(ordersChannel);
+
+      // 2. Subscribe to guest_sessions table
+      if (guestTableIds.length > 0) {
+        const guestSessionsChannel = supabase
+          .channel(`guest-sessions-notifications-${restaurantId}`)
+          .on('postgres_changes', 
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'guest_sessions'
+            },
+            async (payload: any) => {
+              // Check if this session belongs to our restaurant
+              const { data: guestTable } = await supabase
+                .from('guest_tables')
+                .select('id, name, restaurant_id')
+                .eq('id', payload.new?.guest_table_id || payload.old?.guest_table_id)
+                .maybeSingle();
+
+              if (!guestTable || guestTable.restaurant_id !== restaurantId) return;
+
+              if (payload.eventType === 'INSERT') {
+                toast({
+                  title: '🆕 New Guest Session',
+                  description: `${guestTable.name} started ordering`,
+                  duration: 5000,
+                });
+              } else if (payload.eventType === 'UPDATE') {
+                const session = payload.new;
+                const oldSession = payload.old;
+                if (session.status !== oldSession.status) {
+                  const statusMessages: Record<string, string> = {
+                    'READY_FOR_PAYMENT': '💰 Ready for Payment',
+                    'AWAITING_CONFIRMATION': '⏳ Awaiting Payment Confirmation',
+                    'PAID': '✅ Payment Confirmed',
+                    'CLOSED': '🔒 Session Closed',
+                  };
+                  if (statusMessages[session.status]) {
+                    toast({
+                      title: statusMessages[session.status],
+                      description: `${guestTable.name} - ${formatCurrency(Number(session.total_amount))}`,
+                      duration: 5000,
+                    });
+                  }
+                }
+              }
+            }
+          )
+          .subscribe();
+
+        channels.push(guestSessionsChannel);
+
+        // 3. Subscribe to guest_orders table
+        const guestOrdersChannel = supabase
+          .channel(`guest-orders-notifications-${restaurantId}`)
+          .on('postgres_changes', 
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'guest_orders'
+            },
+            async (payload: any) => {
+              // Get session and check if it belongs to our restaurant
+              const sessionId = payload.new?.guest_session_id || payload.old?.guest_session_id;
+              if (!sessionId) return;
+
+              const { data: session } = await supabase
+                .from('guest_sessions')
+                .select('guest_table_id')
+                .eq('id', sessionId)
+                .maybeSingle();
+
+              if (!session) return;
+
+              const { data: guestTable } = await supabase
+                .from('guest_tables')
+                .select('id, name, restaurant_id')
+                .eq('id', session.guest_table_id)
+                .maybeSingle();
+
+              if (!guestTable || guestTable.restaurant_id !== restaurantId) return;
+
+              if (payload.eventType === 'INSERT') {
+                const { data: menuItem } = await supabase
+                  .from('menu_items')
+                  .select('name')
+                  .eq('id', payload.new.menu_item_id)
+                  .maybeSingle();
+
+                toast({
+                  title: '➕ Item Added',
+                  description: `${menuItem?.name || 'Item'} added to ${guestTable.name}`,
+                  duration: 4000,
+                });
+              } else if (payload.eventType === 'UPDATE') {
+                const order = payload.new;
+                const oldOrder = payload.old;
+                if (order.status === 'pending_removal' && oldOrder.status !== 'pending_removal') {
+                  const { data: menuItem } = await supabase
+                    .from('menu_items')
+                    .select('name')
+                    .eq('id', order.menu_item_id)
+                    .maybeSingle();
+
+                  toast({
+                    title: '🗑️ Removal Requested',
+                    description: `${menuItem?.name || 'Item'} removal requested from ${guestTable.name}`,
+                    duration: 5000,
+                  });
+                } else if (order.status === 'pending' && oldOrder.status === 'pending_removal') {
+                  const { data: menuItem } = await supabase
+                    .from('menu_items')
+                    .select('name')
+                    .eq('id', order.menu_item_id)
+                    .maybeSingle();
+
+                  toast({
+                    title: '✅ Removal Rejected',
+                    description: `${menuItem?.name || 'Item'} will remain in ${guestTable.name}`,
+                    duration: 4000,
+                  });
+                }
+              } else if (payload.eventType === 'DELETE') {
+                const { data: menuItem } = await supabase
+                  .from('menu_items')
+                  .select('name')
+                  .eq('id', payload.old.menu_item_id)
+                  .maybeSingle();
+
+                toast({
+                  title: '✅ Item Removed',
+                  description: `${menuItem?.name || 'Item'} removed from ${guestTable.name}`,
+                  duration: 4000,
+                });
+              }
+            }
+          )
+          .subscribe();
+
+        channels.push(guestOrdersChannel);
+      }
+    };
+
+    setupNotifications();
+
+    return () => {
+      channels.forEach(channel => {
+        supabase.removeChannel(channel);
+      });
+    };
+  }, [supabase, toast]);
 
   const handleLogout = async () => {
     try {
