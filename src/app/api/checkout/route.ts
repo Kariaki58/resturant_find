@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { restaurantName, slug, bankName, accountNumber, accountName } = body;
+    const { restaurantName, slug, bankName, accountNumber, accountName, plan = 'monthly' } = body;
 
     // Validate input
     if (!restaurantName || !slug || !bankName || !accountNumber || !accountName) {
@@ -50,6 +50,7 @@ export async function POST(req: Request) {
           bank_name: bankName,
           account_number: accountNumber,
           account_name: accountName,
+          plan: plan,
         });
 
       if (storeError) {
@@ -61,10 +62,16 @@ export async function POST(req: Request) {
       // Continue anyway - transaction meta should have the data
     }
 
+    // Determine amount based on plan
+    const amount = plan === 'yearly' ? 38000 : 3800;
+    const planDescription = plan === 'yearly' 
+      ? 'Yearly subscription (10 months) for restaurant management platform'
+      : 'Monthly subscription for restaurant management platform';
+
     // Prepare Flutterwave payment data
     const paymentData = {
       tx_ref: txRef,
-      amount: 3800,
+      amount: amount,
       currency: 'NGN',
       payment_options: 'card,account,ussd,mpesa,mobilemoneyghana,credit,payattitude,barter,banktransfer,depositaccount,mpesa,pesapal,airtel,applepay,googlepay,mobilemoneyrwanda,mobilemoneyzambia,ussd_mobilemoneyghana,ussd_mobilemoneyuganda,ussd_mobilemoneytanzania,ussd_mobilemoneyrwanda,ussd_mobilemoneyzambia',
       redirect_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'}/api/callback/flutterwave`,
@@ -75,7 +82,7 @@ export async function POST(req: Request) {
       },
       customizations: {
         title: 'Restaurant Subscription',
-        description: 'Monthly subscription for restaurant management platform',
+        description: planDescription,
         logo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'}/favicon.ico`,
       },
       meta: {
@@ -85,6 +92,7 @@ export async function POST(req: Request) {
         bank_name: bankName,
         account_number: accountNumber,
         account_name: accountName,
+        plan: plan,
       },
     };
 

@@ -213,16 +213,43 @@ export default function BillingPage() {
       <Card className="border-none shadow-sm">
         <CardHeader>
           <CardTitle>Renew Subscription</CardTitle>
-          <CardDescription>Continue your subscription for another month</CardDescription>
+          <CardDescription>Choose a plan to continue your subscription</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button className="w-full" size="lg">
-            <CreditCard className="mr-2 h-4 w-4" />
-            Renew Subscription (₦3,800)
-          </Button>
-          <p className="text-xs text-muted-foreground text-center mt-4">
-            Your subscription will be renewed for 30 days from the payment date
-          </p>
+        <CardContent className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="border rounded-lg p-4 space-y-3">
+              <div>
+                <h3 className="font-bold text-lg">Monthly Plan</h3>
+                <p className="text-2xl font-black text-primary">₦3,800</p>
+                <p className="text-sm text-muted-foreground">per month</p>
+              </div>
+              <Button className="w-full" size="lg" variant="outline">
+                <CreditCard className="mr-2 h-4 w-4" />
+                Renew Monthly
+              </Button>
+              <p className="text-xs text-muted-foreground text-center">
+                Renewed for 30 days from payment date
+              </p>
+            </div>
+            <div className="border-2 border-primary rounded-lg p-4 space-y-3 bg-primary/5">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-bold text-lg">Yearly Plan</h3>
+                  <span className="text-xs bg-primary text-white px-2 py-0.5 rounded-full font-bold">SAVE</span>
+                </div>
+                <p className="text-2xl font-black text-primary">₦38,000</p>
+                <p className="text-sm text-muted-foreground">for 10 months</p>
+                <p className="text-xs text-primary font-bold mt-1">Only ₦3,800/month</p>
+              </div>
+              <Button className="w-full" size="lg">
+                <CreditCard className="mr-2 h-4 w-4" />
+                Renew Yearly
+              </Button>
+              <p className="text-xs text-muted-foreground text-center">
+                Renewed for 10 months from payment date
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

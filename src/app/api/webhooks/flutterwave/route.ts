@@ -22,7 +22,8 @@ export async function POST(req: Request) {
     const payload = await req.json();
     console.log('[flutterwave-webhook] Received payload status:', payload.status);
 
-    if (payload.status !== 'successful' || payload.amount !== 3800) {
+    // Accept both monthly (3800) and yearly (38000) payments
+    if (payload.status !== 'successful' || (payload.amount !== 3800 && payload.amount !== 38000)) {
       return NextResponse.json({ status: 'ignored' });
     }
 
@@ -71,6 +72,7 @@ export async function POST(req: Request) {
     let bankName: string = meta.bank_name;
     let accountNumber: string = meta.account_number;
     let accountName: string = meta.account_name;
+    let plan: string = meta.plan || 'monthly';
 
     if (!restaurantName || !slug) {
       const { data: pendingData } = await adminClient
@@ -85,6 +87,7 @@ export async function POST(req: Request) {
         bankName = pendingData.bank_name;
         accountNumber = pendingData.account_number;
         accountName = pendingData.account_name;
+        plan = pendingData.plan || 'monthly';
       }
     }
 
@@ -106,8 +109,16 @@ export async function POST(req: Request) {
     }
 
     // ── Create restaurant ─────────────────────────────────────────────────
+    // Determine plan from meta or amount if not set
+    if (!plan) {
+      plan = payload.amount === 38000 ? 'yearly' : 'monthly';
+    }
     const periodEnd = new Date();
-    periodEnd.setMonth(periodEnd.getMonth() + 1);
+    if (plan === 'yearly') {
+      periodEnd.setMonth(periodEnd.getMonth() + 10);
+    } else {
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+    }
 
     const { data: restaurant, error: restaurantError } = await adminClient
       .from('restaurants')
@@ -148,9 +159,9 @@ export async function POST(req: Request) {
     await adminClient.from('subscriptions').insert({
       restaurant_id: restaurant.id,
       user_id: userId,
-      plan: 'monthly',
+      plan: plan,
       status: 'active',
-      amount_paid: payload.amount || 3800,
+      amount_paid: payload.amount || (plan === 'yearly' ? 38000 : 3800),
       currency: 'NGN',
       flutterwave_tx_ref: tx_ref,
       period_start: new Date().toISOString(),

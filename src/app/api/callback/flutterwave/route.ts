@@ -67,6 +67,7 @@ export async function GET(req: Request) {
       let bankName: string = meta.bank_name;
       let accountNumber: string = meta.account_number;
       let accountName: string = meta.account_name;
+      let plan: string = meta.plan || 'monthly';
 
       // Fallback: retrieve from pending_restaurants table if meta is missing
       if (!restaurantName || !slug) {
@@ -83,6 +84,7 @@ export async function GET(req: Request) {
           bankName = pendingData.bank_name;
           accountNumber = pendingData.account_number;
           accountName = pendingData.account_name;
+          plan = pendingData.plan || 'monthly';
           // Clean up the pending record
           await adminClient.from('pending_restaurants').delete().eq('tx_ref', txRef);
         }
@@ -140,7 +142,11 @@ export async function GET(req: Request) {
 
       // ── 6. Create the restaurant ─────────────────────────────────────────
       const periodEnd = new Date();
-      periodEnd.setMonth(periodEnd.getMonth() + 1);
+      if (plan === 'yearly') {
+        periodEnd.setMonth(periodEnd.getMonth() + 10);
+      } else {
+        periodEnd.setMonth(periodEnd.getMonth() + 1);
+      }
 
       const { data: restaurant, error: restaurantError } = await adminClient
         .from('restaurants')
@@ -179,12 +185,13 @@ export async function GET(req: Request) {
       }
 
       // ── 8. Log subscription ──────────────────────────────────────────────
+      const amountPaid = transactionData?.data?.amount || (plan === 'yearly' ? 38000 : 3800);
       await adminClient.from('subscriptions').insert({
         restaurant_id: restaurant.id,
         user_id: userId,
-        plan: 'monthly',
+        plan: plan,
         status: 'active',
-        amount_paid: transactionData?.data?.amount || 3800,
+        amount_paid: amountPaid,
         currency: 'NGN',
         flutterwave_tx_ref: txRef,
         flutterwave_tx_id: transactionId || null,

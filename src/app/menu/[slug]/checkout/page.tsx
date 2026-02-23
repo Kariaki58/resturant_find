@@ -450,7 +450,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
                 )}
               </CardHeader>
               <CardContent className="pt-6">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, deliveryMethod: 'dine_in' })}
@@ -498,7 +498,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
                       <span className="font-bold text-sm">Delivery</span>
                     </button>
                   ) : null}
-                </div>
+                  </div>
               </CardContent>
             </Card>
 

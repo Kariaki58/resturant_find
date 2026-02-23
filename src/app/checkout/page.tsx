@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
 import { ShieldCheck, CreditCard, CheckCircle2, AlertCircle } from 'lucide-react';
@@ -19,6 +20,7 @@ function CheckoutContent() {
     accountNumber: '',
     accountName: '',
   });
+  const [subscriptionPlan, setSubscriptionPlan] = useState<'monthly' | 'yearly'>('monthly');
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [profileReady, setProfileReady] = useState(false);
@@ -118,6 +120,7 @@ function CheckoutContent() {
           bankName: formData.bankName,
           accountNumber: formData.accountNumber,
           accountName: formData.accountName,
+          plan: subscriptionPlan,
         }),
       });
 
@@ -299,11 +302,49 @@ function CheckoutContent() {
                 <CardDescription className="text-white/70">Everything you need to run your restaurant</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 relative">
+                {/* Plan Selector */}
+                <div className="flex gap-2 p-1 bg-white/10 rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => setSubscriptionPlan('monthly')}
+                    className={`flex-1 py-2 px-4 rounded-md text-sm font-bold transition-all ${
+                      subscriptionPlan === 'monthly'
+                        ? 'bg-white text-primary'
+                        : 'text-white/70 hover:text-white'
+                    }`}
+                  >
+                    Monthly
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSubscriptionPlan('yearly')}
+                    className={`flex-1 py-2 px-4 rounded-md text-sm font-bold transition-all ${
+                      subscriptionPlan === 'yearly'
+                        ? 'bg-white text-primary'
+                        : 'text-white/70 hover:text-white'
+                    }`}
+                  >
+                    Yearly
+                  </button>
+                </div>
+
                 <div>
-                  <p className="text-5xl font-black flex items-baseline gap-1">
-                    <span className="text-2xl font-bold">₦</span>3,800
-                    <span className="text-lg font-normal opacity-70">/mo</span>
-                  </p>
+                  {subscriptionPlan === 'monthly' ? (
+                    <p className="text-5xl font-black flex items-baseline gap-1">
+                      <span className="text-2xl font-bold">₦</span>3,800
+                      <span className="text-lg font-normal opacity-70">/mo</span>
+                    </p>
+                  ) : (
+                    <div>
+                      <p className="text-5xl font-black flex items-baseline gap-1">
+                        <span className="text-2xl font-bold">₦</span>38,000
+                        <span className="text-lg font-normal opacity-70">/year</span>
+                      </p>
+                      <p className="text-sm text-white/70 mt-2">
+                        Save ₦3,800 - Only ₦3,800/month for 10 months
+                      </p>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="space-y-4">
