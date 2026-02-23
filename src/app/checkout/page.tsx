@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
 import { ShieldCheck, CreditCard, CheckCircle2, AlertCircle } from 'lucide-react';
@@ -302,30 +303,28 @@ function CheckoutContent() {
                 <CardDescription className="text-white/70">Everything you need to run your restaurant</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 relative">
-                {/* Plan Selector */}
-                <div className="flex gap-2 p-1 bg-white/10 rounded-lg">
-                  <button
-                    type="button"
-                    onClick={() => setSubscriptionPlan('monthly')}
-                    className={`flex-1 py-2 px-4 rounded-md text-sm font-bold transition-all ${
-                      subscriptionPlan === 'monthly'
-                        ? 'bg-white text-primary'
-                        : 'text-white/70 hover:text-white'
-                    }`}
-                  >
+                {/* Plan Toggle */}
+                <div className="flex items-center justify-center gap-4 p-4 bg-white/10 rounded-lg">
+                  <span className={`text-sm font-bold transition-colors ${
+                    subscriptionPlan === 'monthly' ? 'text-white' : 'text-white/60'
+                  }`}>
                     Monthly
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSubscriptionPlan('yearly')}
-                    className={`flex-1 py-2 px-4 rounded-md text-sm font-bold transition-all ${
-                      subscriptionPlan === 'yearly'
-                        ? 'bg-white text-primary'
-                        : 'text-white/70 hover:text-white'
-                    }`}
-                  >
+                  </span>
+                  <Switch
+                    checked={subscriptionPlan === 'yearly'}
+                    onCheckedChange={(checked) => setSubscriptionPlan(checked ? 'yearly' : 'monthly')}
+                    className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
+                  />
+                  <span className={`text-sm font-bold transition-colors ${
+                    subscriptionPlan === 'yearly' ? 'text-white' : 'text-white/60'
+                  }`}>
                     Yearly
-                  </button>
+                  </span>
+                  {subscriptionPlan === 'yearly' && (
+                    <Badge className="ml-2 bg-green-500/20 text-green-200 border-green-400/30">
+                      Save 20%
+                    </Badge>
+                  )}
                 </div>
 
                 <div>
