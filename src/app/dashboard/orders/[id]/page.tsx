@@ -172,6 +172,24 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
       if (error) throw error;
 
+      // Update stock for menu items
+      try {
+        const stockResponse = await fetch('/api/orders/update-stock', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ orderId: order.id }),
+        });
+
+        if (!stockResponse.ok) {
+          console.error('Failed to update stock, but order was confirmed');
+        }
+      } catch (stockError) {
+        console.error('Error updating stock:', stockError);
+        // Don't fail the order confirmation if stock update fails
+      }
+
       toast({
         title: "Order Confirmed",
         description: "Payment verified successfully. Moving to kitchen.",

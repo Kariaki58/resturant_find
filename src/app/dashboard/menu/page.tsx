@@ -541,6 +541,21 @@ export default function MenuPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="quantity">Available Stock</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={formData.quantity}
+                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                    placeholder="Enter available stock (optional)"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Optional: Enter the number of items currently in stock
+                  </p>
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="image">Image</Label>
                   <div className="space-y-3">
                     <Input
@@ -660,7 +675,7 @@ export default function MenuPage() {
                     <span className="text-2xl font-bold">{formatCurrency(item.price)}</span>
                     {item.quantity !== null && (
                       <p className="text-xs text-muted-foreground mt-1">
-                        Quantity: {item.quantity}
+                        Stock: {item.quantity}
                       </p>
                     )}
                   </div>

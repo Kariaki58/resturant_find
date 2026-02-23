@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { updateStockForOrder } from '@/lib/utils/stock-update';
 
 export async function POST(req: Request) {
   try {
@@ -142,6 +143,14 @@ export async function POST(req: Request) {
         { error: 'Failed to create order items', details: itemsError.message },
         { status: 500 }
       );
+    }
+
+    // Update stock for menu items since order is created with 'confirmed' status
+    try {
+      await updateStockForOrder(adminClient, order.id);
+    } catch (stockError) {
+      console.error('Error updating stock:', stockError);
+      // Don't fail order creation if stock update fails
     }
 
     return NextResponse.json({

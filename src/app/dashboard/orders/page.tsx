@@ -232,6 +232,27 @@ function OrdersContent() {
         .eq('id', orderId);
 
       if (error) throw error;
+
+      // Update stock when order is confirmed
+      if (newStatus === 'confirmed') {
+        try {
+          const stockResponse = await fetch('/api/orders/update-stock', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ orderId }),
+          });
+
+          if (!stockResponse.ok) {
+            console.error('Failed to update stock, but order was confirmed');
+          }
+        } catch (stockError) {
+          console.error('Error updating stock:', stockError);
+          // Don't fail the order status update if stock update fails
+        }
+      }
+
       // Real-time subscription will automatically refresh the list
     } catch (error) {
       console.error('Error updating order status:', error);
