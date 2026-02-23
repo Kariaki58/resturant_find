@@ -21,6 +21,21 @@ interface Restaurant {
   account_name: string;
   delivery_enabled: boolean;
   banner_url: string | null;
+  phone: string | null;
+  monday_open: string | null;
+  monday_close: string | null;
+  tuesday_open: string | null;
+  tuesday_close: string | null;
+  wednesday_open: string | null;
+  wednesday_close: string | null;
+  thursday_open: string | null;
+  thursday_close: string | null;
+  friday_open: string | null;
+  friday_close: string | null;
+  saturday_open: string | null;
+  saturday_close: string | null;
+  sunday_open: string | null;
+  sunday_close: string | null;
 }
 
 interface UserData {
@@ -45,6 +60,21 @@ export default function SettingsPage() {
     account_number: '',
     account_name: '',
     delivery_enabled: false,
+    phone: '',
+    monday_open: '',
+    monday_close: '',
+    tuesday_open: '',
+    tuesday_close: '',
+    wednesday_open: '',
+    wednesday_close: '',
+    thursday_open: '',
+    thursday_close: '',
+    friday_open: '',
+    friday_close: '',
+    saturday_open: '',
+    saturday_close: '',
+    sunday_open: '',
+    sunday_close: '',
   });
   const [userForm, setUserForm] = useState({
     full_name: '',
@@ -74,34 +104,52 @@ export default function SettingsPage() {
 
       if (!userData) return;
 
+      const typedUserData = userData as { restaurant_id: string | null; full_name: string; email: string; phone: string };
+
       setUserForm({
-        full_name: userData.full_name,
-        phone: userData.phone,
+        full_name: typedUserData.full_name,
+        phone: typedUserData.phone,
       });
       setUserData({
-        full_name: userData.full_name,
-        email: userData.email,
-        phone: userData.phone,
+        full_name: typedUserData.full_name,
+        email: typedUserData.email,
+        phone: typedUserData.phone,
       });
 
-      if (userData.restaurant_id) {
+      if (typedUserData.restaurant_id) {
         const { data: restaurantData } = await supabase
           .from('restaurants')
           .select('*')
-          .eq('id', userData.restaurant_id)
+          .eq('id', typedUserData.restaurant_id)
           .single();
 
         if (restaurantData) {
-          setRestaurant(restaurantData);
-          setBannerUrl(restaurantData.banner_url || null);
-          setBannerPreview(restaurantData.banner_url || null);
+          const typedRestaurantData = restaurantData as Restaurant;
+          setRestaurant(typedRestaurantData);
+          setBannerUrl(typedRestaurantData.banner_url || null);
+          setBannerPreview(typedRestaurantData.banner_url || null);
           setRestaurantForm({
-            name: restaurantData.name,
-            slug: restaurantData.slug,
-            bank_name: restaurantData.bank_name,
-            account_number: restaurantData.account_number,
-            account_name: restaurantData.account_name,
-            delivery_enabled: restaurantData.delivery_enabled || false,
+            name: typedRestaurantData.name,
+            slug: typedRestaurantData.slug,
+            bank_name: typedRestaurantData.bank_name,
+            account_number: typedRestaurantData.account_number,
+            account_name: typedRestaurantData.account_name,
+            delivery_enabled: typedRestaurantData.delivery_enabled || false,
+            phone: typedRestaurantData.phone || '',
+            monday_open: typedRestaurantData.monday_open || '',
+            monday_close: typedRestaurantData.monday_close || '',
+            tuesday_open: typedRestaurantData.tuesday_open || '',
+            tuesday_close: typedRestaurantData.tuesday_close || '',
+            wednesday_open: typedRestaurantData.wednesday_open || '',
+            wednesday_close: typedRestaurantData.wednesday_close || '',
+            thursday_open: typedRestaurantData.thursday_open || '',
+            thursday_close: typedRestaurantData.thursday_close || '',
+            friday_open: typedRestaurantData.friday_open || '',
+            friday_close: typedRestaurantData.friday_close || '',
+            saturday_open: typedRestaurantData.saturday_open || '',
+            saturday_close: typedRestaurantData.saturday_close || '',
+            sunday_open: typedRestaurantData.sunday_open || '',
+            sunday_close: typedRestaurantData.sunday_close || '',
           });
         }
       }
@@ -135,7 +183,8 @@ export default function SettingsPage() {
         .maybeSingle();
 
       if (existing) {
-        if (existing.name === restaurantForm.name) {
+        const typedExisting = existing as { id: string; name: string; slug: string } | null;
+        if (typedExisting?.name === restaurantForm.name) {
           toast({
             title: 'Error',
             description: 'This restaurant name is already taken',
@@ -152,17 +201,34 @@ export default function SettingsPage() {
         return;
       }
 
-      const { error } = await supabase
+      const updateData: any = {
+        name: restaurantForm.name,
+        slug: restaurantForm.slug,
+        bank_name: restaurantForm.bank_name,
+        account_number: restaurantForm.account_number,
+        account_name: restaurantForm.account_name,
+        delivery_enabled: restaurantForm.delivery_enabled,
+        phone: restaurantForm.phone || null,
+        monday_open: restaurantForm.monday_open || null,
+        monday_close: restaurantForm.monday_close || null,
+        tuesday_open: restaurantForm.tuesday_open || null,
+        tuesday_close: restaurantForm.tuesday_close || null,
+        wednesday_open: restaurantForm.wednesday_open || null,
+        wednesday_close: restaurantForm.wednesday_close || null,
+        thursday_open: restaurantForm.thursday_open || null,
+        thursday_close: restaurantForm.thursday_close || null,
+        friday_open: restaurantForm.friday_open || null,
+        friday_close: restaurantForm.friday_close || null,
+        saturday_open: restaurantForm.saturday_open || null,
+        saturday_close: restaurantForm.saturday_close || null,
+        sunday_open: restaurantForm.sunday_open || null,
+        sunday_close: restaurantForm.sunday_close || null,
+      };
+
+      const { error } = await (supabase
         .from('restaurants')
-        .update({
-          name: restaurantForm.name,
-          slug: restaurantForm.slug,
-          bank_name: restaurantForm.bank_name,
-          account_number: restaurantForm.account_number,
-          account_name: restaurantForm.account_name,
-          delivery_enabled: restaurantForm.delivery_enabled,
-        })
-        .eq('id', restaurant.id);
+        .update(updateData as any)
+        .eq('id', restaurant.id) as any);
 
       if (error) throw error;
 
@@ -239,7 +305,7 @@ export default function SettingsPage() {
       // Update restaurant with banner URL in database
       const { error: updateError } = await supabase
         .from('restaurants')
-        .update({ banner_url: data.url })
+        .update({ banner_url: data.url } as any)
         .eq('id', restaurant.id);
 
       if (updateError) {
@@ -290,7 +356,7 @@ export default function SettingsPage() {
     try {
       const { error } = await supabase
         .from('restaurants')
-        .update({ banner_url: null })
+        .update({ banner_url: null } as any)
         .eq('id', restaurant.id);
 
       if (error) throw error;
@@ -322,13 +388,13 @@ export default function SettingsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { error } = await supabase
+      const { error } = await (supabase
         .from('users')
         .update({
           full_name: userForm.full_name,
           phone: userForm.phone,
-        })
-        .eq('id', user.id);
+        } as any)
+        .eq('id', user.id) as any);
 
       if (error) throw error;
 
@@ -554,6 +620,76 @@ export default function SettingsPage() {
                     required
                   />
                 </div>
+                <div className="space-y-2 pt-4 border-t">
+                  <Label htmlFor="phone">Restaurant Phone Number</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={restaurantForm.phone}
+                    onChange={(e) => setRestaurantForm({ ...restaurantForm, phone: e.target.value })}
+                    placeholder="e.g., +234 800 123 4567"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    This will be displayed on your menu page for customers to contact you
+                  </p>
+                </div>
+                <div className="space-y-2 pt-4 border-t">
+                  <Label htmlFor="phone">Restaurant Phone Number</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={restaurantForm.phone}
+                    onChange={(e) => setRestaurantForm({ ...restaurantForm, phone: e.target.value })}
+                    placeholder="e.g., +234 800 123 4567"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    This will be displayed on your menu page for customers to contact you
+                  </p>
+                </div>
+                
+                {/* Operating Hours */}
+                <div className="pt-4 border-t space-y-4">
+                  <div>
+                    <Label className="text-base font-semibold">Operating Hours</Label>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      Set your restaurant's opening and closing times for each day
+                    </p>
+                  </div>
+                  {[
+                    { day: 'Monday', openKey: 'monday_open', closeKey: 'monday_close' },
+                    { day: 'Tuesday', openKey: 'tuesday_open', closeKey: 'tuesday_close' },
+                    { day: 'Wednesday', openKey: 'wednesday_open', closeKey: 'wednesday_close' },
+                    { day: 'Thursday', openKey: 'thursday_open', closeKey: 'thursday_close' },
+                    { day: 'Friday', openKey: 'friday_open', closeKey: 'friday_close' },
+                    { day: 'Saturday', openKey: 'saturday_open', closeKey: 'saturday_close' },
+                    { day: 'Sunday', openKey: 'sunday_open', closeKey: 'sunday_close' },
+                  ].map(({ day, openKey, closeKey }) => (
+                    <div key={day} className="grid grid-cols-3 gap-3 items-end">
+                      <div className="font-medium text-sm">{day}</div>
+                      <div className="space-y-1">
+                        <Label htmlFor={openKey} className="text-xs">Open</Label>
+                        <Input
+                          id={openKey}
+                          type="time"
+                          value={restaurantForm[openKey as keyof typeof restaurantForm] as string}
+                          onChange={(e) => setRestaurantForm({ ...restaurantForm, [openKey]: e.target.value })}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor={closeKey} className="text-xs">Close</Label>
+                        <Input
+                          id={closeKey}
+                          type="time"
+                          value={restaurantForm[closeKey as keyof typeof restaurantForm] as string}
+                          onChange={(e) => setRestaurantForm({ ...restaurantForm, [closeKey]: e.target.value })}
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
                 <div className="flex items-center space-x-2 pt-4 border-t">
                   <input
                     type="checkbox"

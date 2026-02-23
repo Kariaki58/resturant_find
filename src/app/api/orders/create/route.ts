@@ -46,22 +46,83 @@ export async function POST(req: Request) {
       0
     );
 
-    // Get or create customer user (optional - for tracking)
+    // Get or create customer user for tracking
     let customerId: string | null = null;
+    
+    // Normalize email for consistent lookup
+    const normalizedEmail = customerInfo.email.trim().toLowerCase();
     
     // Check if customer exists by email
     const { data: existingCustomer } = await supabase
       .from('users')
       .select('id')
-      .eq('email', customerInfo.email)
+      .eq('email', normalizedEmail)
       .eq('role', 'customer')
       .maybeSingle();
 
     if (existingCustomer) {
       customerId = existingCustomer.id;
+      console.log('Found existing customer account for email:', normalizedEmail);
     } else {
-      // Create customer user if they don't exist (optional - you might want to skip this)
-      // For now, we'll leave customer_id as null for guest orders
+      // Create customer user account automatically so they can track orders by email
+      // First create auth user, then create users table entry
+      try {
+        // Generate a random password (customer won't need to login, just track orders)
+        const randomPassword = `temp_${Math.random().toString(36).slice(2)}${Date.now()}`;
+        
+        console.log('Creating auth user for customer:', normalizedEmail);
+        
+        // Create auth user first
+        const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+          email: normalizedEmail,
+          password: randomPassword,
+          email_confirm: true, // Auto-confirm email so they can track immediately
+          user_metadata: {
+            full_name: customerInfo.fullName,
+            phone: customerInfo.phone,
+          },
+        });
+
+        if (authError || !authUser.user) {
+          console.error('Error creating auth user for customer:', authError);
+          // Continue without customer_id - order will still be created
+        } else {
+          console.log('Auth user created successfully, ID:', authUser.user.id);
+          
+          // Now create the users table entry
+          const { data: newCustomer, error: createError } = await supabase
+            .from('users')
+            .insert({
+              id: authUser.user.id,
+              email: normalizedEmail,
+              full_name: customerInfo.fullName,
+              phone: customerInfo.phone,
+              role: 'customer',
+            })
+            .select('id')
+            .single();
+
+          if (!createError && newCustomer) {
+            customerId = newCustomer.id;
+            console.log('Successfully created customer account for email:', normalizedEmail, 'Customer ID:', customerId);
+          } else {
+            console.error('Error creating customer user record:', createError);
+            // Clean up auth user if users table insert failed
+            if (authUser.user) {
+              try {
+                await supabase.auth.admin.deleteUser(authUser.user.id);
+                console.log('Cleaned up auth user after failed users table insert');
+              } catch (deleteError) {
+                console.error('Error cleaning up auth user:', deleteError);
+              }
+            }
+            // Continue without customer_id - order will still be created
+          }
+        }
+      } catch (error) {
+        console.error('Error creating customer account:', error);
+        // Continue without customer_id - order will still be created
+      }
     }
 
     // Get table_id if tableNumber is provided
@@ -114,6 +175,8 @@ export async function POST(req: Request) {
         payment_reference: paymentInfo.paymentReference,
         payment_proof_url: paymentInfo.paymentProofUrl,
         buyer_transfer_name: paymentInfo.buyerTransferName,
+        buyer_email: customerInfo.email.trim().toLowerCase(),
+        buyer_phone: customerInfo.phone,
         note: finalNote,
         delivery_method: normalizedDeliveryMethod,
       })

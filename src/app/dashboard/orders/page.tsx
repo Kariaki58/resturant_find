@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ShoppingBag, Filter, Search, CreditCard, Clock, Plus, Download } from 'lucide-react';
+import { ShoppingBag, Filter, Search, CreditCard, Clock, Plus, Download, Phone } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +24,8 @@ interface Order {
   note: string | null;
   payment_reference: string | null;
   buyer_transfer_name: string | null;
+  buyer_email: string | null;
+  buyer_phone: string | null;
   table?: { table_number: number } | null;
   customer?: { full_name: string; email: string } | null;
 }
@@ -385,9 +387,31 @@ function OrdersContent() {
                           <p>Table {order.table.table_number}</p>
                         )}
                         {order.customer ? (
-                          <p>{order.customer.full_name} • {order.customer.email}</p>
+                          <div>
+                            <p className="font-medium">{order.customer.full_name}</p>
+                            {order.buyer_phone && (
+                              <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                                <Phone className="h-3 w-3" />
+                                {order.buyer_phone}
+                              </p>
+                            )}
+                            {order.buyer_email && (
+                              <p className="text-sm text-muted-foreground">{order.buyer_email}</p>
+                            )}
+                          </div>
                         ) : order.buyer_transfer_name ? (
-                          <p className="font-medium">{order.buyer_transfer_name} (Walk-in)</p>
+                          <div>
+                            <p className="font-medium">{order.buyer_transfer_name} (Walk-in)</p>
+                            {order.buyer_phone && (
+                              <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                                <Phone className="h-3 w-3" />
+                                {order.buyer_phone}
+                              </p>
+                            )}
+                            {order.buyer_email && (
+                              <p className="text-sm text-muted-foreground">{order.buyer_email}</p>
+                            )}
+                          </div>
                         ) : null}
                         <p className="capitalize">
                           {order.delivery_method?.replace('_', ' ') || 'Pickup'}

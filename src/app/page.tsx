@@ -1,11 +1,84 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
-import { Smartphone, CreditCard, ShieldCheck } from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Smartphone, CreditCard, ShieldCheck, Search, Utensils, Loader2, ChevronRight } from 'lucide-react';
 import { GetStartedButton } from '@/components/get-started-button';
 import { AuthNavButtons } from '@/components/auth-nav-buttons';
 import { Logo } from '@/components/logo';
+import { useToast } from '@/hooks/use-toast';
+
+interface Restaurant {
+  id: string;
+  name: string;
+  slug: string;
+}
 
 export default function Home() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Restaurant[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const router = useRouter();
+  const { toast } = useToast();
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Close search results when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowResults(false);
+      }
+    };
+
+    if (showResults) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showResults]);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!searchQuery.trim()) {
+      return;
+    }
+
+    setIsSearching(true);
+    setShowResults(true);
+
+    try {
+      const response = await fetch(`/api/restaurants/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to search restaurants');
+      }
+
+      setSearchResults(data.restaurants || []);
+    } catch (error: any) {
+      toast({
+        title: 'Search failed',
+        description: error.message || 'Unable to search restaurants',
+        variant: 'destructive',
+      });
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSelectRestaurant = (slug: string) => {
+    router.push(`/menu/${slug}`);
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}
@@ -49,6 +122,85 @@ export default function Home() {
                 className="relative rounded-2xl shadow-2xl border-4 border-white"
                 data-ai-hint="restaurant dashboard"
               />
+            </div>
+          </div>
+        </section>
+
+        {/* Restaurant Search Section */}
+        <section className="py-16 px-6 bg-white">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center space-y-4 mb-8">
+              <h2 className="text-3xl font-bold font-headline">Find a Restaurant</h2>
+              <p className="text-muted-foreground">
+                Search for your favorite restaurant and browse their menu
+              </p>
+            </div>
+            <div className="space-y-4 relative" ref={searchRef}>
+              <form onSubmit={handleSearch} className="relative">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
+                  <Input
+                    type="text"
+                    placeholder="Search for a restaurant..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      if (!e.target.value.trim()) {
+                        setShowResults(false);
+                        setSearchResults([]);
+                      }
+                    }}
+                    className="pl-12 pr-4 py-6 text-lg rounded-full border-2 focus:border-primary"
+                  />
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full px-6"
+                    disabled={isSearching || !searchQuery.trim()}
+                  >
+                    {isSearching ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      'Search'
+                    )}
+                  </Button>
+                </div>
+              </form>
+
+              {/* Search Results */}
+              {showResults && (
+                <Card className="absolute z-20 w-full mt-2 shadow-lg max-h-96 overflow-y-auto">
+                  <CardContent className="p-0">
+                    {isSearching ? (
+                      <div className="p-4 text-center text-muted-foreground">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                        <p>Searching...</p>
+                      </div>
+                    ) : searchResults.length > 0 ? (
+                      <div className="divide-y">
+                        {searchResults.map((restaurant) => (
+                          <button
+                            key={restaurant.id}
+                            onClick={() => handleSelectRestaurant(restaurant.slug)}
+                            className="w-full p-4 text-left hover:bg-muted transition-colors flex items-center gap-3"
+                          >
+                            <Utensils className="h-5 w-5 text-primary flex-shrink-0" />
+                            <div className="flex-1">
+                              <p className="font-semibold">{restaurant.name}</p>
+                              <p className="text-sm text-muted-foreground">/{restaurant.slug}</p>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                          </button>
+                        ))}
+                      </div>
+                    ) : searchQuery.trim() ? (
+                      <div className="p-4 text-center text-muted-foreground">
+                        <p>No restaurants found matching "{searchQuery}"</p>
+                      </div>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </section>

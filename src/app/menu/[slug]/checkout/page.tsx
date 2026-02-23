@@ -328,16 +328,16 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
           </Badge>
         </div>
 
-        <form onSubmit={handleSubmit} className="grid lg:grid-cols-12 gap-8">
-          {/* Left Column - Order Details & Payment */}
-          <div className="space-y-6">
+        <form onSubmit={handleSubmit} className="grid lg:grid-cols-12 gap-6">
+          {/* Left Column - Order Details & Forms */}
+          <div className="lg:col-span-7 space-y-6">
             {/* Order Summary */}
             <Card className="border-none shadow-xl shadow-foreground/5 rounded-3xl overflow-hidden">
               <CardHeader className="bg-muted/30 pb-4">
-                <CardTitle className="text-xl">Your Order</CardTitle>
+                <CardTitle className="text-xl font-bold">Your Order</CardTitle>
               </CardHeader>
               <CardContent className="pt-6 space-y-4">
-                <div className="max-h-[300px] overflow-y-auto pr-2 custom-scrollbar space-y-4">
+                <div className="max-h-[280px] overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
                   {cart.map((item) => (
                     <div key={item.menuItem.id} className="flex items-center gap-4 pb-4 border-b last:border-0 last:pb-0">
                       <div className="w-16 h-16 rounded-2xl overflow-hidden bg-muted shrink-0 shadow-inner">
@@ -375,7 +375,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
             {/* Customer Information */}
             <Card className="border-none shadow-xl shadow-foreground/5 rounded-3xl overflow-hidden">
               <CardHeader className="bg-muted/30">
-                <CardTitle className="flex items-center gap-2 text-lg">
+                <CardTitle className="flex items-center gap-2 text-lg font-bold">
                   <User size={18} className="text-primary" />
                   Your Information
                 </CardTitle>
@@ -389,8 +389,8 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
                       value={formData.fullName}
                       onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                       required
-                      placeholder="Enter your name"
-                      className="rounded-xl bg-muted/30 border-none focus-visible:ring-primary"
+                      placeholder="Enter your full name"
+                      className="rounded-xl bg-muted/30 border border-border/50 focus-visible:ring-2 focus-visible:ring-primary"
                     />
                   </div>
                   <div className="space-y-2">
@@ -401,8 +401,8 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       required
-                      placeholder="+234..."
-                      className="rounded-xl bg-muted/30 border-none focus-visible:ring-primary"
+                      placeholder="+234 800 123 4567"
+                      className="rounded-xl bg-muted/30 border border-border/50 focus-visible:ring-2 focus-visible:ring-primary"
                     />
                   </div>
                 </div>
@@ -415,7 +415,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     required
                     placeholder="your@email.com"
-                    className="rounded-xl bg-muted/30 border-none focus-visible:ring-primary"
+                    className="rounded-xl bg-muted/30 border border-border/50 focus-visible:ring-2 focus-visible:ring-primary"
                   />
                 </div>
                 <div className="space-y-2">
@@ -424,9 +424,9 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
                     id="note"
                     value={formData.note}
                     onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                    placeholder="Extra spices, allergies, etc..."
-                    rows={2}
-                    className="rounded-xl bg-muted/30 border-none focus-visible:ring-primary resize-none"
+                    placeholder="Extra spices, allergies, dietary requirements, etc..."
+                    rows={3}
+                    className="rounded-xl bg-muted/30 border border-border/50 focus-visible:ring-2 focus-visible:ring-primary resize-none"
                   />
                 </div>
               </CardContent>
@@ -435,13 +435,13 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
             {/* Order Type Selection */}
             <Card className="border-none shadow-xl shadow-foreground/5 rounded-3xl overflow-hidden">
               <CardHeader className="bg-muted/30">
-                <CardTitle className="flex items-center gap-2 text-lg">
+                <CardTitle className="flex items-center gap-2 text-lg font-bold">
                   <Utensils size={18} className="text-primary" />
                   How would you like your meal?
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-6">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, deliveryMethod: 'dine_in' })}
@@ -490,10 +490,10 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
               </CardContent>
             </Card>
 
-            {/* Payment Verification (Mobile Optimization: Reordered for flow) */}
+            {/* Payment Verification */}
             <Card className="border-none shadow-xl shadow-foreground/5 rounded-3xl overflow-hidden">
               <CardHeader className="bg-muted/30">
-                <CardTitle className="flex items-center gap-2 text-lg">
+                <CardTitle className="flex items-center gap-2 text-lg font-bold">
                   <CreditCard size={18} className="text-primary" />
                   Payment Verification
                 </CardTitle>
@@ -501,14 +501,14 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
               <CardContent className="pt-6 space-y-4">
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="paymentReference" className="text-xs font-bold uppercase tracking-wider opacity-70">Payment Ref *</Label>
+                    <Label htmlFor="paymentReference" className="text-xs font-bold uppercase tracking-wider opacity-70">Payment Reference *</Label>
                     <Input
                       id="paymentReference"
                       value={formData.paymentReference}
                       onChange={(e) => setFormData({ ...formData, paymentReference: e.target.value })}
                       required
-                      placeholder="Ref number"
-                      className="rounded-xl bg-muted/30 border-none"
+                      placeholder="Transaction reference"
+                      className="rounded-xl bg-muted/30 border border-border/50 focus-visible:ring-2 focus-visible:ring-primary"
                     />
                   </div>
                   <div className="space-y-2">
@@ -518,8 +518,8 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
                       value={formData.buyerTransferName}
                       onChange={(e) => setFormData({ ...formData, buyerTransferName: e.target.value })}
                       required
-                      placeholder="Who transfered?"
-                      className="rounded-xl bg-muted/30 border-none"
+                      placeholder="Name on transfer receipt"
+                      className="rounded-xl bg-muted/30 border border-border/50 focus-visible:ring-2 focus-visible:ring-primary"
                     />
                   </div>
                 </div>
@@ -527,15 +527,34 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
                   <Label htmlFor="paymentProof" className="text-xs font-bold uppercase tracking-wider opacity-70">Proof of Payment *</Label>
                   <div className="space-y-3">
                     <div className="flex items-center justify-center w-full">
-                      <label htmlFor="paymentProof" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-muted-foreground/20 rounded-2xl cursor-pointer hover:bg-muted/30 transition-colors relative overflow-hidden group">
+                      <label htmlFor="paymentProof" className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-muted-foreground/30 rounded-2xl cursor-pointer hover:bg-muted/50 hover:border-primary/50 transition-all relative overflow-hidden group">
                         {paymentProofPreview ? (
-                          <img src={paymentProofPreview} alt="Preview" className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity" />
+                          <>
+                            <img src={paymentProofPreview} alt="Preview" className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-40 transition-opacity" />
+                            <div className="absolute top-2 right-2 z-10">
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                className="h-8 w-8 rounded-full p-0"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setPaymentProofFile(null);
+                                  setPaymentProofPreview(null);
+                                }}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </>
                         ) : null}
                         <div className="flex flex-col items-center justify-center pt-5 pb-6 relative z-10">
-                          <Upload className={`w-8 h-8 mb-3 ${paymentProofPreview ? 'text-white' : 'text-muted-foreground/50'}`} />
-                          <p className={`text-xs font-medium ${paymentProofPreview ? 'text-white drop-shadow-md' : 'text-muted-foreground'}`}>
+                          <Upload className={`w-10 h-10 mb-3 ${paymentProofPreview ? 'text-primary' : 'text-muted-foreground/50'}`} />
+                          <p className={`text-sm font-medium ${paymentProofPreview ? 'text-primary' : 'text-muted-foreground'}`}>
                             {paymentProofFile ? paymentProofFile.name : 'Click to upload receipt'}
                           </p>
+                          <p className="text-xs text-muted-foreground mt-1">JPEG, PNG, or WebP (max 5MB)</p>
                         </div>
                         <Input
                           id="paymentProof"
@@ -553,9 +572,9 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
             </Card>
           </div>
 
-          <div className="lg:col-span-5 space-y-6">
-            {/* Bank Account Details - Sticky on Desktop */}
-            <Card className="border-none shadow-2xl shadow-primary/10 rounded-3xl overflow-hidden bg-primary text-white lg:sticky lg:top-24">
+          {/* Right Column - Payment Details (Sticky) */}
+          <div className="lg:col-span-5">
+            <Card className="border-none shadow-2xl shadow-primary/10 rounded-3xl overflow-hidden bg-primary text-white lg:sticky lg:top-6">
               <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
                 <Building2 size={120} />
               </div>
@@ -564,73 +583,75 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
                 <CardDescription className="text-white/70">Please transfer exactly {formatCurrency(getTotal())}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 relative pt-2">
-                <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm space-y-4">
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Bank Name</p>
-                    <p className="text-lg font-bold">{restaurant.bank_name}</p>
+                <div className="bg-white/10 rounded-2xl p-5 backdrop-blur-sm space-y-5 border border-white/20">
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">Bank Name</p>
+                    <p className="text-xl font-bold">{restaurant.bank_name}</p>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Account Number</p>
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-2xl font-black font-mono tracking-tighter">{restaurant.account_number}</p>
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">Account Number</p>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-2xl font-black font-mono tracking-tight break-all">{restaurant.account_number}</p>
                       <Button
                         type="button"
                         variant="secondary"
                         size="sm"
-                        className="rounded-full bg-white text-primary hover:bg-blue-50 h-8 font-bold"
+                        className="rounded-full bg-white text-primary hover:bg-white/90 h-9 px-4 font-bold shrink-0"
                         onClick={() => {
                           navigator.clipboard.writeText(restaurant.account_number);
-                          toast({ title: 'Copied!', description: 'Account number saved' });
+                          toast({ title: 'Copied!', description: 'Account number copied to clipboard' });
                         }}
                       >
                         Copy
                       </Button>
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Account Name</p>
-                    <p className="text-lg font-bold">{restaurant.account_name}</p>
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">Account Name</p>
+                    <p className="text-xl font-bold">{restaurant.account_name}</p>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <p className="text-sm font-bold uppercase tracking-widest opacity-70">Steps to finish:</p>
-                  <div className="grid gap-3">
+                <div className="space-y-4 pt-2 border-t border-white/20">
+                  <p className="text-sm font-bold uppercase tracking-widest opacity-80">Steps to finish:</p>
+                  <div className="space-y-3">
                     {[
                       { step: 1, text: "Copy the account details" },
                       { step: 2, text: "Make the bank transfer" },
                       { step: 3, text: "Upload the receipt below" }
                     ].map((s) => (
                       <div key={s.step} className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-black">{s.step}</div>
-                        <p className="text-xs font-medium">{s.text}</p>
+                        <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-xs font-black shrink-0">{s.step}</div>
+                        <p className="text-sm font-medium">{s.text}</p>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="w-full h-14 text-lg font-black rounded-2xl bg-white text-primary hover:bg-blue-50 shadow-lg"
-                  disabled={submitting || uploadingProof}
-                >
-                  {submitting || uploadingProof ? (
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
-                      Processing...
-                    </div>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="mr-2 h-5 w-5" />
-                      SUBMIT ORDER
-                    </>
-                  )}
-                </Button>
-                
-                <p className="text-[10px] text-center text-white/50 px-4">
-                  Our system will verify your payment within 1-5 minutes of submission.
-                </p>
+                <div className="pt-4 space-y-3">
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="w-full h-14 text-lg font-black rounded-2xl bg-white text-primary hover:bg-white/95 shadow-xl hover:shadow-2xl transition-all"
+                    disabled={submitting || uploadingProof}
+                  >
+                    {submitting || uploadingProof ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                        Processing...
+                      </div>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="mr-2 h-5 w-5" />
+                        SUBMIT ORDER
+                      </>
+                    )}
+                  </Button>
+                  
+                  <p className="text-xs text-center text-white/60 px-2">
+                    Our system will verify your payment within 1-5 minutes of submission.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </div>

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, CheckCircle2, XCircle, Download, MapPin, Phone, User, Calendar, CreditCard, Truck, Store, Utensils } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, XCircle, Download, MapPin, Phone, User, Calendar, CreditCard, Truck, Store, Utensils, Mail } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from 'next/link';
 import { PaymentProofAnalyzer } from '@/components/orders/PaymentProofAnalyzer';
@@ -33,6 +33,8 @@ interface Order {
   payment_reference: string | null;
   payment_proof_url: string | null;
   buyer_transfer_name: string | null;
+  buyer_email: string | null;
+  buyer_phone: string | null;
   note: string | null;
   created_at: string;
   customer: {
@@ -486,20 +488,34 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Email:</span>
-                    <span className="font-bold">{order.customer.email}</span>
+                    <span className="font-bold">{order.buyer_email || order.customer.email}</span>
                   </div>
-                  {order.customer.phone && (
+                  {(order.buyer_phone || order.customer.phone) && (
                     <div className="flex justify-between">
                       <span className="text-gray-600">Phone:</span>
-                      <span className="font-bold">{order.customer.phone}</span>
+                      <span className="font-bold">{order.buyer_phone || order.customer.phone}</span>
                     </div>
                   )}
                 </>
               ) : order.buyer_transfer_name ? (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Name:</span>
-                  <span className="font-bold">{order.buyer_transfer_name}</span>
-                </div>
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Name:</span>
+                    <span className="font-bold">{order.buyer_transfer_name}</span>
+                  </div>
+                  {order.buyer_email && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Email:</span>
+                      <span className="font-bold">{order.buyer_email}</span>
+                    </div>
+                  )}
+                  {order.buyer_phone && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Phone:</span>
+                      <span className="font-bold">{order.buyer_phone}</span>
+                    </div>
+                  )}
+                </>
               ) : null}
               {order.payment_reference && (
                 <div className="flex justify-between">
@@ -545,14 +561,14 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                   <div className="flex items-start gap-3">
                     <Phone className="w-4 h-4 mt-1 text-muted-foreground" />
                     <div>
-                      <p className="text-sm font-bold">{order.customer.phone}</p>
+                      <p className="text-sm font-bold">{order.buyer_phone || order.customer.phone}</p>
                       <p className="text-xs text-muted-foreground">Phone Number</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
                     <CreditCard className="w-4 h-4 mt-1 text-muted-foreground" />
                     <div>
-                      <p className="text-sm font-bold">{order.customer.email}</p>
+                      <p className="text-sm font-bold">{order.buyer_email || order.customer.email}</p>
                       <p className="text-xs text-muted-foreground">Email</p>
                     </div>
                   </div>
@@ -567,13 +583,33 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               )}
                 </>
               ) : order.buyer_transfer_name ? (
-                <div className="flex items-start gap-3">
-                  <User className="w-4 h-4 mt-1 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-bold text-primary">{order.buyer_transfer_name}</p>
-                    <p className="text-xs text-muted-foreground">Customer Name (Walk-in Order)</p>
+                <>
+                  <div className="flex items-start gap-3">
+                    <User className="w-4 h-4 mt-1 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-bold text-primary">{order.buyer_transfer_name}</p>
+                      <p className="text-xs text-muted-foreground">Customer Name (Walk-in Order)</p>
+                    </div>
                   </div>
-                </div>
+                  {order.buyer_email && (
+                    <div className="flex items-start gap-3">
+                      <CreditCard className="w-4 h-4 mt-1 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-bold text-primary">{order.buyer_email}</p>
+                        <p className="text-xs text-muted-foreground">Email</p>
+                      </div>
+                    </div>
+                  )}
+                  {order.buyer_phone && (
+                    <div className="flex items-start gap-3">
+                      <Phone className="w-4 h-4 mt-1 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-bold text-primary">{order.buyer_phone}</p>
+                        <p className="text-xs text-muted-foreground">Phone Number</p>
+                      </div>
+                    </div>
+                  )}
+                </>
               ) : null}
               {order.payment_reference && (
                 <div className="flex items-start gap-3">

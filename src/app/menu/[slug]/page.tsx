@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { use } from 'react';
-import { Info, Clock, MapPin, Search, ChevronRight, ShoppingBag, Image as ImageIcon, Plus, Minus, X } from 'lucide-react';
+import { Info, Clock, MapPin, Search, ChevronRight, ShoppingBag, Image as ImageIcon, Plus, Minus, X, Phone, Package } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,21 @@ interface Restaurant {
   name: string;
   slug: string;
   banner_url: string | null;
+  phone: string | null;
+  monday_open: string | null;
+  monday_close: string | null;
+  tuesday_open: string | null;
+  tuesday_close: string | null;
+  wednesday_open: string | null;
+  wednesday_close: string | null;
+  thursday_open: string | null;
+  thursday_close: string | null;
+  friday_open: string | null;
+  friday_close: string | null;
+  saturday_open: string | null;
+  saturday_close: string | null;
+  sunday_open: string | null;
+  sunday_close: string | null;
 }
 
 interface Category {
@@ -72,10 +87,10 @@ export default function RestaurantMenuPage({ params }: { params: Promise<{ slug:
       setLoading(true);
       setError(null);
 
-      // Fetch restaurant by slug (including banner_url)
+      // Fetch restaurant by slug (including banner_url, phone, and hours)
       const { data: restaurantData, error: restaurantError } = await supabase
         .from('restaurants')
-        .select('id, name, slug, banner_url')
+        .select('id, name, slug, banner_url, phone, monday_open, monday_close, tuesday_open, tuesday_close, wednesday_open, wednesday_close, thursday_open, thursday_close, friday_open, friday_close, saturday_open, saturday_close, sunday_open, sunday_close')
         .eq('slug', slug)
         .maybeSingle();
 
@@ -232,6 +247,42 @@ export default function RestaurantMenuPage({ params }: { params: Promise<{ slug:
     return cart.reduce((count, item) => count + item.quantity, 0);
   };
 
+  const getOperatingHours = (restaurant: Restaurant) => {
+    const days = [
+      { key: 'monday', label: 'Monday' },
+      { key: 'tuesday', label: 'Tuesday' },
+      { key: 'wednesday', label: 'Wednesday' },
+      { key: 'thursday', label: 'Thursday' },
+      { key: 'friday', label: 'Friday' },
+      { key: 'saturday', label: 'Saturday' },
+      { key: 'sunday', label: 'Sunday' },
+    ];
+
+    return days.map(({ key, label }) => {
+      const openKey = `${key}_open` as keyof Restaurant;
+      const closeKey = `${key}_close` as keyof Restaurant;
+      const open = restaurant[openKey] as string | null;
+      const close = restaurant[closeKey] as string | null;
+
+      if (!open || !close) {
+        return { day: label, time: 'Closed' };
+      }
+
+      const formatTime = (time: string) => {
+        const [hours, minutes] = time.split(':');
+        const hour = parseInt(hours);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour % 12 || 12;
+        return `${displayHour}:${minutes} ${ampm}`;
+      };
+
+      return {
+        day: label,
+        time: `${formatTime(open)} - ${formatTime(close)}`,
+      };
+    });
+  };
+
   const handleCheckout = () => {
     if (cart.length === 0) {
       toast({
@@ -308,17 +359,54 @@ export default function RestaurantMenuPage({ params }: { params: Promise<{ slug:
 
       <div className="max-w-4xl mx-auto w-full -mt-20 relative z-10 px-4">
         <div className="bg-white rounded-3xl p-8 shadow-xl border mb-8">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div className="space-y-2">
-              <h1 className="text-4xl font-bold font-headline">{restaurant.name}</h1>
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1 font-medium"><Clock size={14} /> 20-30 mins</span>
-                <span className="flex items-center gap-1 font-medium"><MapPin size={14} /> Online Ordering</span>
+          <div className="space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="space-y-2">
+                <h1 className="text-4xl font-bold font-headline">{restaurant.name}</h1>
+                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1 font-medium"><Clock size={14} /> 20-30 mins</span>
+                  <span className="flex items-center gap-1 font-medium"><MapPin size={14} /> Online Ordering</span>
+                </div>
+              </div>
+              <Button asChild variant="outline" className="rounded-full">
+                <Link href={`/menu/${slug}/track`}>
+                  <Package className="mr-2 h-4 w-4" />
+                  Track Order
+                </Link>
+              </Button>
+            </div>
+
+            {/* Contact & Hours Info */}
+            <div className="grid md:grid-cols-2 gap-6 pt-4 border-t">
+              {/* Contact Info */}
+              {restaurant.phone && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                    <Phone className="h-4 w-4" />
+                    Contact
+                  </div>
+                  <a href={`tel:${restaurant.phone}`} className="text-lg font-bold text-primary hover:underline">
+                    {restaurant.phone}
+                  </a>
+                </div>
+              )}
+
+              {/* Operating Hours */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  Operating Hours
+                </div>
+                <div className="space-y-1">
+                  {getOperatingHours(restaurant).map((hours, index) => (
+                    <div key={index} className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">{hours.day}</span>
+                      <span className="font-medium">{hours.time}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-            <Button variant="outline" size="icon" className="rounded-full">
-              <Info size={20} />
-            </Button>
           </div>
         </div>
 
