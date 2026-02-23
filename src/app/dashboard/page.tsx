@@ -108,14 +108,48 @@ export default function DashboardPage() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // Total revenue (completed orders)
+        // Total revenue (completed orders + closed guest sessions)
         const { data: revenueData } = await supabase
           .from('orders')
           .select('total_amount')
           .eq('restaurant_id', userData.restaurant_id)
           .eq('status', 'completed');
 
-        const totalRevenue = revenueData?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
+        const ordersRevenue = revenueData?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
+
+        // Get guest sessions revenue (closed/paid sessions)
+        const { data: guestTables } = await supabase
+          .from('guest_tables')
+          .select('id')
+          .eq('restaurant_id', userData.restaurant_id);
+
+        let guestSessionsRevenue = 0;
+        if (guestTables && guestTables.length > 0) {
+          const tableIds = guestTables.map(t => t.id);
+          const { data: guestSessionsData } = await supabase
+            .from('guest_sessions')
+            .select(`
+              id,
+              guest_orders(
+                quantity,
+                price,
+                status
+              )
+            `)
+            .in('guest_table_id', tableIds)
+            .in('status', ['PAID', 'CLOSED']);
+
+          // Calculate revenue excluding pending_removal items
+          guestSessionsData?.forEach((session: any) => {
+            session.guest_orders?.forEach((order: any) => {
+              if (order.status !== 'pending_removal') {
+                guestSessionsRevenue += Number(order.quantity) * Number(order.price);
+              }
+            });
+          });
+        }
+
+        const totalRevenue = ordersRevenue + guestSessionsRevenue;
 
         // Orders today
         const { data: ordersTodayData } = await supabase

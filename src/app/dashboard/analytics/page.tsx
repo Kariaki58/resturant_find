@@ -105,7 +105,7 @@ export default function AnalyticsPage() {
         return;
       }
 
-      // Calculate revenue per menu item
+      // Calculate revenue per menu item from regular orders
       const menuItemMap = new Map<string, MenuItemRevenue>();
 
       orders?.forEach((order: any) => {
@@ -135,13 +135,84 @@ export default function AnalyticsPage() {
         });
       });
 
+      // Fetch guest sessions and their orders
+      const { data: guestTables } = await supabase
+        .from('guest_tables')
+        .select('id')
+        .eq('restaurant_id', restaurantId);
+
+      let guestSessionsCount = 0;
+      if (guestTables && guestTables.length > 0) {
+        const tableIds = guestTables.map(t => t.id);
+        
+        let guestSessionsQuery = supabase
+          .from('guest_sessions')
+          .select(`
+            id,
+            total_amount,
+            created_at,
+            guest_orders(
+              id,
+              quantity,
+              price,
+              status,
+              menu_item_id,
+              menu_item:menu_items(
+                id,
+                name,
+                image_url
+              )
+            )
+          `)
+          .in('guest_table_id', tableIds)
+          .in('status', ['PAID', 'CLOSED']);
+
+        if (dateFilter) {
+          guestSessionsQuery = guestSessionsQuery.gte('created_at', dateFilter);
+        }
+
+        const { data: guestSessions } = await guestSessionsQuery;
+        guestSessionsCount = guestSessions?.length || 0;
+
+        // Add guest session orders to menu item map (exclude pending_removal)
+        guestSessions?.forEach((session: any) => {
+          session.guest_orders?.forEach((order: any) => {
+            // Skip items pending removal
+            if (order.status === 'pending_removal') return;
+            
+            const menuItemId = order.menu_item_id;
+            const menuItemName = order.menu_item?.name || 'Unknown';
+            const quantity = order.quantity || 0;
+            const price = Number(order.price) || 0;
+            const revenue = quantity * price;
+            const imageUrl = order.menu_item?.image_url || null;
+
+            if (menuItemMap.has(menuItemId)) {
+              const existing = menuItemMap.get(menuItemId)!;
+              existing.total_quantity += quantity;
+              existing.total_revenue += revenue;
+              existing.order_count += 1;
+            } else {
+              menuItemMap.set(menuItemId, {
+                menu_item_id: menuItemId,
+                menu_item_name: menuItemName,
+                total_quantity: quantity,
+                total_revenue: revenue,
+                order_count: 1,
+                image_url: imageUrl,
+              });
+            }
+          });
+        });
+      }
+
       // Convert map to array and sort by revenue
       const menuItems = Array.from(menuItemMap.values())
         .sort((a, b) => b.total_revenue - a.total_revenue);
 
-      // Calculate totals
+      // Calculate totals (including guest sessions revenue)
       const totalRevenue = menuItems.reduce((sum, item) => sum + item.total_revenue, 0);
-      const totalOrders = orders?.length || 0;
+      const totalOrders = (orders?.length || 0) + guestSessionsCount;
       const totalItemsSold = menuItems.reduce((sum, item) => sum + item.total_quantity, 0);
 
       setAnalytics({

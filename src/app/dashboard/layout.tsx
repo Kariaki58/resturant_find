@@ -15,7 +15,7 @@ import {
   SidebarFooter,
   useSidebar
 } from "@/components/ui/sidebar";
-import { Utensils, ShoppingBag, LayoutDashboard, Settings, LogOut, Smartphone, User, CreditCard, AlertCircle, BarChart3 } from 'lucide-react';
+import { Utensils, ShoppingBag, LayoutDashboard, Settings, LogOut, Smartphone, User, CreditCard, AlertCircle, BarChart3, Users, Receipt } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -48,6 +48,8 @@ function NavItems() {
     { icon: <Utensils />, label: "Menu Items", href: "/dashboard/menu" },
     { icon: <BarChart3 />, label: "Analytics", href: "/dashboard/analytics" },
     { icon: <Smartphone />, label: "QR Tables", href: "/dashboard/tables" },
+    { icon: <Users />, label: "Guest Tables", href: "/dashboard/guest-tables" },
+    { icon: <Receipt />, label: "Guest Sessions", href: "/dashboard/guest-sessions" },
     { icon: <CreditCard />, label: "Subscription", href: "/dashboard/billing" },
     { icon: <Settings />, label: "Settings", href: "/dashboard/settings" },
   ];
