@@ -23,6 +23,7 @@ export default function Home() {
   const [searchResults, setSearchResults] = useState<Restaurant[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [subscriptionPlan, setSubscriptionPlan] = useState<'monthly' | 'yearly'>('monthly');
   const router = useRouter();
   const { toast } = useToast();
   const searchRef = useRef<HTMLDivElement>(null);
@@ -100,7 +101,7 @@ export default function Home() {
                 <span className="animate-pulse">●</span> Made for Nigeria
               </div>
               <h1 className="text-5xl md:text-7xl font-bold font-headline leading-[1.1]">
-                Modernize Your <span className="text-primary italic">Buka</span> or Restaurant
+                Modernize Your <span className="text-primary italic">Hotel</span> or Restaurant
               </h1>
               <p className="text-xl text-muted-foreground leading-relaxed max-w-lg">
                 The ultimate restaurant management tool. Accept bank transfers securely, manage dine-in QR orders, and track sales in real-time.
@@ -250,9 +251,58 @@ export default function Home() {
             </div>
             <div className="text-center space-y-6">
               <h2 className="text-3xl font-bold">Simple Professional Plan</h2>
+              
+              {/* Plan Toggle */}
+              <div className="flex items-center justify-center gap-4 py-4">
+                <span className={`text-sm font-bold transition-colors ${
+                  subscriptionPlan === 'monthly' ? 'text-foreground' : 'text-muted-foreground'
+                }`}>
+                  Monthly
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSubscriptionPlan(subscriptionPlan === 'monthly' ? 'yearly' : 'monthly')}
+                  className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 ${
+                    subscriptionPlan === 'yearly' ? 'bg-primary' : 'bg-muted'
+                  }`}
+                  role="switch"
+                  aria-checked={subscriptionPlan === 'yearly'}
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-lg ${
+                      subscriptionPlan === 'yearly' ? 'translate-x-8' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+                <span className={`text-sm font-bold transition-colors ${
+                  subscriptionPlan === 'yearly' ? 'text-foreground' : 'text-muted-foreground'
+                }`}>
+                  Yearly
+                </span>
+                {subscriptionPlan === 'yearly' && (
+                  <span className="ml-2 bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-bold">
+                    Save 20%
+                  </span>
+                )}
+              </div>
+
               <div className="flex items-center justify-center gap-1">
-                <span className="text-5xl font-extrabold">₦3,800</span>
-                <span className="text-muted-foreground font-medium">/ month</span>
+                {subscriptionPlan === 'monthly' ? (
+                  <>
+                    <span className="text-5xl font-extrabold">₦3,800</span>
+                    <span className="text-muted-foreground font-medium">/ month</span>
+                  </>
+                ) : (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-center gap-1">
+                      <span className="text-5xl font-extrabold">₦38,000</span>
+                      <span className="text-muted-foreground font-medium">/ year</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Only ₦3,800/month for 10 months
+                    </p>
+                  </div>
+                )}
               </div>
               <ul className="grid md:grid-cols-2 gap-4 text-left max-w-md mx-auto py-8">
                 {["Unlimited Orders", "QR Table System", "Bank Transfer Verification", "Menu Management", "Real-time Sales", "Multi-staff Support"].map((item, i) => (

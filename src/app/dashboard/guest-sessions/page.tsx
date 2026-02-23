@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShoppingBag, CheckCircle2, Clock, CreditCard, Filter, Search, ChevronDown, ChevronUp, Utensils, XCircle, AlertCircle, X } from 'lucide-react';
+import { ShoppingBag, CheckCircle2, Clock, CreditCard, Filter, Search, ChevronDown, ChevronUp, Utensils, XCircle, AlertCircle, X, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,6 +41,7 @@ interface GuestSession {
 export default function GuestSessionsPage() {
   const [sessions, setSessions] = useState<GuestSession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [hasRestaurant, setHasRestaurant] = useState<boolean | null>(null);
@@ -52,6 +53,26 @@ export default function GuestSessionsPage() {
   useEffect(() => {
     fetchSessions();
   }, [statusFilter, searchQuery]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchSessions();
+      toast({
+        title: 'Refreshed',
+        description: 'Guest sessions have been updated.',
+      });
+    } catch (error) {
+      console.error('Error refreshing sessions:', error);
+      toast({
+        title: 'Refresh failed',
+        description: 'Could not refresh guest sessions.',
+        variant: 'destructive',
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const fetchSessions = async () => {
     try {
@@ -309,6 +330,17 @@ export default function GuestSessionsPage() {
           <h1 className="text-3xl font-bold font-headline">Guest Sessions</h1>
           <p className="text-muted-foreground">Manage and track guest table ordering sessions</p>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="text-primary hover:text-primary"
+          title="Refresh sessions"
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
       {/* Filters */}

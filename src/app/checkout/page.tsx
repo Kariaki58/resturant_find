@@ -310,11 +310,21 @@ function CheckoutContent() {
                   }`}>
                     Monthly
                   </span>
-                  <Switch
-                    checked={subscriptionPlan === 'yearly'}
-                    onCheckedChange={(checked) => setSubscriptionPlan(checked ? 'yearly' : 'monthly')}
-                    className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
-                  />
+                  <button
+                    type="button"
+                    onClick={() => setSubscriptionPlan(subscriptionPlan === 'monthly' ? 'yearly' : 'monthly')}
+                    className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-primary ${
+                      subscriptionPlan === 'yearly' ? 'bg-white' : 'bg-white/40'
+                    }`}
+                    role="switch"
+                    aria-checked={subscriptionPlan === 'yearly'}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-primary transition-transform shadow-lg ${
+                        subscriptionPlan === 'yearly' ? 'translate-x-8 bg-white' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
                   <span className={`text-sm font-bold transition-colors ${
                     subscriptionPlan === 'yearly' ? 'text-white' : 'text-white/60'
                   }`}>

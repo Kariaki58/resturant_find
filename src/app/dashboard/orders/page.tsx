@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, Suspense } from 'react';
+import { useEffect, useState, useRef, Suspense, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ShoppingBag, Filter, Search, CreditCard, Clock, Plus, Download, Phone } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -9,9 +9,14 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Pagination } from '@/components/ui/pagination';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
+import { useDebounce } from '@/hooks/use-debounce';
+import { useOptimisticUpdate } from '@/hooks/use-optimistic-update';
+import { requestCache } from '@/lib/utils/request-cache';
+import { useToast } from '@/hooks/use-toast';
 
 interface Order {
   id: string;
@@ -30,29 +35,29 @@ interface Order {
   customer?: { full_name: string; email: string } | null;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 function OrdersContent() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [hasRestaurant, setHasRestaurant] = useState<boolean | null>(null);
+  const [updatingOrders, setUpdatingOrders] = useState<Set<string>>(new Set());
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
   const restaurantIdRef = useRef<string | null>(null);
+  const { toast } = useToast();
+  
+  // Debounce search query
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-  useEffect(() => {
-    // Check if we need to refresh (coming from create page)
-    const refresh = searchParams.get('refresh');
-    if (refresh === 'true') {
-      // Remove the refresh parameter from URL
-      router.replace('/dashboard/orders', { scroll: false });
-    }
-
-    let channel: any = null;
-
-    const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
       try {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         
@@ -108,6 +113,41 @@ function OrdersContent() {
         restaurantIdRef.current = userData.restaurant_id;
         setHasRestaurant(true);
 
+        // Calculate pagination range
+        const from = (currentPage - 1) * ITEMS_PER_PAGE;
+        const to = from + ITEMS_PER_PAGE - 1;
+
+        // Build base query for count
+        let countQuery = supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('restaurant_id', restaurantIdRef.current);
+
+        if (statusFilter !== 'all') {
+          countQuery = countQuery.eq('status', statusFilter);
+        }
+
+        if (typeFilter !== 'all') {
+          countQuery = countQuery.eq('order_type', typeFilter);
+        }
+
+        // Apply search filter to count
+        if (debouncedSearchQuery) {
+          // For search, we need to get all matching IDs first, then count
+          // This is a limitation of Supabase - we'll handle search client-side for count
+        }
+
+        // Get total count
+        const { count, error: countError } = await countQuery;
+        
+        if (countError) {
+          console.error('Error fetching count:', countError);
+        } else {
+          setTotalCount(count || 0);
+          setTotalPages(Math.ceil((count || 0) / ITEMS_PER_PAGE));
+        }
+
+        // Build query for paginated data
         let query = supabase
           .from('orders')
           .select(`
@@ -115,7 +155,8 @@ function OrdersContent() {
             customer:users!orders_customer_id_fkey(full_name, email)
           `)
           .eq('restaurant_id', restaurantIdRef.current)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .range(from, to);
 
         if (statusFilter !== 'all') {
           query = query.eq('status', statusFilter);
@@ -154,21 +195,22 @@ function OrdersContent() {
           }
 
           // Combine orders with table data
-          let filtered = ordersDataTyped.map(order => ({
+          let ordersWithTables = ordersDataTyped.map(order => ({
             ...order,
             table: order.table_id ? tablesMap[order.table_id] || null : null,
           })) as Order[];
-          
-          if (searchQuery) {
-            filtered = filtered.filter(order => 
-              order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              order.customer?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              order.customer?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              order.buyer_transfer_name?.toLowerCase().includes(searchQuery.toLowerCase())
+
+          // Apply client-side search filter (since Supabase doesn't support full-text search easily)
+          if (debouncedSearchQuery) {
+            ordersWithTables = ordersWithTables.filter(order => 
+              order.id.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+              order.customer?.full_name?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+              order.customer?.email?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+              order.buyer_transfer_name?.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
             );
           }
-
-          setOrders(filtered);
+          
+          setOrders(ordersWithTables);
         } else {
           setOrders([]);
         }
@@ -178,7 +220,17 @@ function OrdersContent() {
       } finally {
         setLoading(false);
       }
-    };
+  }, [statusFilter, typeFilter, currentPage, debouncedSearchQuery, supabase, router]);
+
+  useEffect(() => {
+    // Check if we need to refresh (coming from create page)
+    const refresh = searchParams.get('refresh');
+    if (refresh === 'true') {
+      // Remove the refresh parameter from URL
+      router.replace('/dashboard/orders', { scroll: false });
+    }
+
+    let channel: any = null;
 
     fetchOrders().then(() => {
       // Set up real-time subscription after initial fetch
@@ -195,13 +247,31 @@ function OrdersContent() {
             (payload) => {
               // Only process changes for this restaurant
               if (payload.new && (payload.new as any).restaurant_id === restaurantId) {
-                console.log('Order change detected:', payload);
-                // Refetch orders when any change occurs
-    fetchOrders();
+                // Optimistically update the order in the list
+                setOrders(prev => {
+                  const existingIndex = prev.findIndex(o => o.id === (payload.new as any).id);
+                  if (existingIndex >= 0) {
+                    // Update existing order
+                    return prev.map((o, i) => i === existingIndex ? { ...o, ...(payload.new as any) } : o);
+                  } else {
+                    // If it's a new order and matches current filters, add it
+                    const newOrder = payload.new as any;
+                    const matchesFilter = 
+                      (statusFilter === 'all' || newOrder.status === statusFilter) &&
+                      (typeFilter === 'all' || newOrder.order_type === typeFilter);
+                    
+                    if (matchesFilter && prev.length < ITEMS_PER_PAGE) {
+                      return [newOrder, ...prev].slice(0, ITEMS_PER_PAGE);
+                    }
+                    return prev;
+                  }
+                });
+                // Refetch to get accurate count and pagination
+                fetchOrders();
               } else if (payload.old && (payload.old as any).restaurant_id === restaurantId) {
-                // Handle deletes/updates
-                console.log('Order change detected:', payload);
-          fetchOrders();
+                // Handle deletes
+                setOrders(prev => prev.filter(o => o.id !== (payload.old as any).id));
+                fetchOrders();
               }
         }
       )
@@ -221,7 +291,12 @@ function OrdersContent() {
       }
       window.removeEventListener('focus', handleFocus);
     };
-  }, [router, supabase, statusFilter, typeFilter, searchQuery, searchParams]);
+  }, [router, supabase, searchParams, fetchOrders]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, typeFilter, debouncedSearchQuery]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
@@ -251,24 +326,25 @@ function OrdersContent() {
     }
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
-    try {
+  // Optimistic update hook
+  const { execute: updateOrderStatusOptimistic } = useOptimisticUpdate(
+    async (data: { orderId: string; newStatus: string }) => {
       const { error } = await supabase
         .from('orders')
-        .update({ status: newStatus })
-        .eq('id', orderId);
+        .update({ status: data.newStatus })
+        .eq('id', data.orderId);
 
       if (error) throw error;
 
       // Update stock when order is confirmed
-      if (newStatus === 'confirmed') {
+      if (data.newStatus === 'confirmed') {
         try {
           const stockResponse = await fetch('/api/orders/update-stock', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ orderId }),
+            body: JSON.stringify({ orderId: data.orderId }),
           });
 
           if (!stockResponse.ok) {
@@ -276,15 +352,47 @@ function OrdersContent() {
           }
         } catch (stockError) {
           console.error('Error updating stock:', stockError);
-          // Don't fail the order status update if stock update fails
         }
       }
 
-      // Real-time subscription will automatically refresh the list
-    } catch (error) {
-      console.error('Error updating order status:', error);
+      // Refetch orders after status update
+      if (restaurantIdRef.current) {
+        // Trigger refetch by updating a dependency or calling fetchOrders
+        window.dispatchEvent(new CustomEvent('refresh-orders'));
+      }
+
+      return data;
+    },
+    {
+      successMessage: 'Order status updated successfully',
+      errorMessage: 'Failed to update order status',
+      rollbackOnError: true,
     }
-  };
+  );
+
+  const updateOrderStatus = useCallback(async (orderId: string, newStatus: string) => {
+    // Optimistically update UI immediately
+    setOrders(prev => prev.map(order => 
+      order.id === orderId ? { ...order, status: newStatus } : order
+    ));
+    setUpdatingOrders(prev => new Set(prev).add(orderId));
+
+    try {
+      await updateOrderStatusOptimistic({ orderId, newStatus });
+      // Refetch to ensure data is in sync
+      fetchOrders();
+    } catch (error) {
+      // Error handling is done in the hook
+      // Revert optimistic update on error
+      fetchOrders();
+    } finally {
+      setUpdatingOrders(prev => {
+        const next = new Set(prev);
+        next.delete(orderId);
+        return next;
+      });
+    }
+  }, [updateOrderStatusOptimistic]);
 
   // Show error state if no restaurant (but don't redirect immediately)
   if (hasRestaurant === false) {
@@ -336,7 +444,7 @@ function OrdersContent() {
                   placeholder="Search by order ID, customer name, or email..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 transition-all"
                 />
               </div>
             </div>
@@ -388,8 +496,9 @@ function OrdersContent() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {orders.map((order) => (
+        <>
+          <div className="space-y-4">
+            {orders.map((order) => (
             <Card key={order.id} className="border-none shadow-sm hover:shadow-md transition-shadow">
               <CardContent className="pt-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -471,16 +580,19 @@ function OrdersContent() {
                           <Button 
                             size="sm" 
                             onClick={() => updateOrderStatus(order.id, 'confirmed')}
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-green-600 hover:bg-green-700 transition-all"
+                            disabled={updatingOrders.has(order.id)}
                           >
-                            Confirm
+                            {updatingOrders.has(order.id) ? '...' : 'Confirm'}
                           </Button>
                           <Button 
                             size="sm" 
                             variant="destructive"
                             onClick={() => updateOrderStatus(order.id, 'cancelled')}
+                            disabled={updatingOrders.has(order.id)}
+                            className="transition-all"
                           >
-                            Cancel
+                            {updatingOrders.has(order.id) ? '...' : 'Cancel'}
                           </Button>
                         </>
                       )}
@@ -488,26 +600,30 @@ function OrdersContent() {
                         <Button 
                           size="sm" 
                           onClick={() => updateOrderStatus(order.id, 'preparing')}
+                          disabled={updatingOrders.has(order.id)}
+                          className="transition-all"
                         >
-                          Start Preparing
+                          {updatingOrders.has(order.id) ? '...' : 'Start Preparing'}
                         </Button>
                       )}
                       {order.status === 'preparing' && (
                         <Button 
                           size="sm" 
                           onClick={() => updateOrderStatus(order.id, 'ready')}
-                          className="bg-green-600 hover:bg-green-700"
+                          className="bg-green-600 hover:bg-green-700 transition-all"
+                          disabled={updatingOrders.has(order.id)}
                         >
-                          Mark Ready
+                          {updatingOrders.has(order.id) ? '...' : 'Mark Ready'}
                         </Button>
                       )}
                       {order.status === 'ready' && (
                         <Button 
                           size="sm" 
                           onClick={() => updateOrderStatus(order.id, 'completed')}
-                          className="bg-green-600 hover:bg-green-700"
+                          className="bg-green-600 hover:bg-green-700 transition-all"
+                          disabled={updatingOrders.has(order.id)}
                         >
-                          Complete
+                          {updatingOrders.has(order.id) ? '...' : 'Complete'}
                         </Button>
                       )}
                     </div>
@@ -515,8 +631,20 @@ function OrdersContent() {
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
+            ))}
+          </div>
+          
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-6 flex justify-center">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
+        </>
       )}
     </div>
   );
