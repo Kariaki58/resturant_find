@@ -140,8 +140,13 @@ export async function POST(req: Request) {
       }
     }
 
-    // Determine order type
+    // Determine order type - if table number is provided, it's a dine_in order
     const orderType = tableNumber ? 'dine_in' : 'online';
+    
+    // If table number is provided, ensure delivery method is dine_in
+    if (tableNumber && deliveryMethod !== 'dine_in') {
+      normalizedDeliveryMethod = 'dine_in';
+    }
 
     // Validate and normalize delivery_method
     let normalizedDeliveryMethod = (deliveryMethod || 'pickup').toLowerCase();

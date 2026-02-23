@@ -55,6 +55,9 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
   const [paymentProofPreview, setPaymentProofPreview] = useState<string | null>(null);
   const [uploadingProof, setUploadingProof] = useState(false);
 
+  // Get table number from URL if present
+  const tableNumberFromUrl = searchParams.get('table') ? parseInt(searchParams.get('table')!) : null;
+  
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -62,7 +65,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
     note: '',
     paymentReference: '',
     buyerTransferName: '',
-    deliveryMethod: 'pickup' as 'delivery' | 'pickup' | 'dine_in',
+    deliveryMethod: (tableNumberFromUrl ? 'dine_in' : 'pickup') as 'delivery' | 'pickup' | 'dine_in',
   });
 
   useEffect(() => {
@@ -439,9 +442,26 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
                   <Utensils size={18} className="text-primary" />
                   How would you like your meal?
                 </CardTitle>
+                {tableNumberFromUrl && (
+                  <CardDescription className="text-primary font-medium mt-2 flex items-center gap-2">
+                    <Utensils className="h-4 w-4" />
+                    Ordering from Table {tableNumberFromUrl}
+                  </CardDescription>
+                )}
               </CardHeader>
               <CardContent className="pt-6">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {tableNumberFromUrl ? (
+                  <div className="bg-primary/5 border-2 border-primary/20 rounded-2xl p-6 text-center">
+                    <div className="flex items-center justify-center gap-3 mb-2">
+                      <div className="p-3 rounded-full bg-primary text-white">
+                        <Utensils size={24} />
+                      </div>
+                    </div>
+                    <p className="font-bold text-lg text-primary">Dine In - Table {tableNumberFromUrl}</p>
+                    <p className="text-sm text-muted-foreground mt-2">Your order will be served at this table</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, deliveryMethod: 'dine_in' })}
@@ -486,7 +506,8 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
                       <span className="font-bold text-sm">Delivery</span>
                     </button>
                   ) : null}
-                </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
