@@ -13,6 +13,8 @@ import { createClient } from '@/lib/supabase/client';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/logo';
+import { useSearchParams } from 'next/navigation';
+
 
 interface Restaurant {
   id: string;
@@ -73,6 +75,11 @@ export default function RestaurantMenuPage({ params }: { params: Promise<{ slug:
   const router = useRouter();
   const { toast } = useToast();
   const supabase = createClient();
+  const searchParams = useSearchParams();
+  const tableNumber = searchParams.get('table');
+
+
+  console.log('tableNumber', tableNumber);
 
   useEffect(() => {
     fetchRestaurantData();
@@ -294,7 +301,11 @@ export default function RestaurantMenuPage({ params }: { params: Promise<{ slug:
     }
     // Store cart in localStorage for checkout page
     localStorage.setItem('cart', JSON.stringify(cart));
-    router.push(`/menu/${slug}/checkout`);
+    // Pass table number to checkout if available
+    const checkoutUrl = tableNumber 
+      ? `/menu/${slug}/checkout?table=${tableNumber}`
+      : `/menu/${slug}/checkout`;
+    router.push(checkoutUrl);
   };
 
   if (loading) {

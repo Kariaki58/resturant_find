@@ -450,18 +450,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
                 )}
               </CardHeader>
               <CardContent className="pt-6">
-                {tableNumberFromUrl ? (
-                  <div className="bg-primary/5 border-2 border-primary/20 rounded-2xl p-6 text-center">
-                    <div className="flex items-center justify-center gap-3 mb-2">
-                      <div className="p-3 rounded-full bg-primary text-white">
-                        <Utensils size={24} />
-                      </div>
-                    </div>
-                    <p className="font-bold text-lg text-primary">Dine In - Table {tableNumberFromUrl}</p>
-                    <p className="text-sm text-muted-foreground mt-2">Your order will be served at this table</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, deliveryMethod: 'dine_in' })}
@@ -475,6 +464,9 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
                       <Utensils size={20} />
                     </div>
                     <span className="font-bold text-sm">Dine In</span>
+                    {tableNumberFromUrl && formData.deliveryMethod === 'dine_in' && (
+                      <span className="text-xs text-primary font-medium mt-1">Table {tableNumberFromUrl}</span>
+                    )}
                   </button>
                   <button
                     type="button"
@@ -506,8 +498,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
                       <span className="font-bold text-sm">Delivery</span>
                     </button>
                   ) : null}
-                  </div>
-                )}
+                </div>
               </CardContent>
             </Card>
 

@@ -150,16 +150,41 @@ export default function DashboardPage() {
         // Fetch recent orders
         const { data: ordersData } = await supabase
           .from('orders')
-          .select(`
-            *,
-            table:tables(table_number)
-          `)
+          .select('*')
           .eq('restaurant_id', userData.restaurant_id)
           .order('created_at', { ascending: false })
           .limit(5);
 
         if (ordersData) {
-          setRecentOrders(ordersData as Order[]);
+          const ordersDataTyped = ordersData as any[];
+          // Fetch tables separately for orders that have table_id
+          const tableIds = ordersDataTyped
+            .map(order => order.table_id)
+            .filter((id): id is string => id !== null && id !== undefined);
+          
+          let tablesMap: Record<string, { table_number: number }> = {};
+          if (tableIds.length > 0) {
+            const { data: tablesData } = await supabase
+              .from('tables')
+              .select('id, table_number')
+              .in('id', tableIds);
+            
+            if (tablesData) {
+              const tablesDataTyped = tablesData as any[];
+              tablesMap = tablesDataTyped.reduce((acc, table: any) => {
+                acc[table.id] = { table_number: table.table_number };
+                return acc;
+              }, {} as Record<string, { table_number: number }>);
+            }
+          }
+
+          // Combine orders with table data
+          const ordersWithTables = ordersDataTyped.map(order => ({
+            ...order,
+            table: order.table_id ? tablesMap[order.table_id] || null : null,
+          })) as Order[];
+          
+          setRecentOrders(ordersWithTables);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);

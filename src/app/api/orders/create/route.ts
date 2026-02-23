@@ -140,20 +140,16 @@ export async function POST(req: Request) {
       }
     }
 
-    // Determine order type - if table number is provided, it's a dine_in order
-    const orderType = tableNumber ? 'dine_in' : 'online';
-    
-    // If table number is provided, ensure delivery method is dine_in
-    if (tableNumber && deliveryMethod !== 'dine_in') {
-      normalizedDeliveryMethod = 'dine_in';
-    }
-
     // Validate and normalize delivery_method
     let normalizedDeliveryMethod = (deliveryMethod || 'pickup').toLowerCase();
     // Ensure it's one of the valid values (handle both old and new constraint)
     if (!['delivery', 'pickup', 'dine_in'].includes(normalizedDeliveryMethod)) {
       normalizedDeliveryMethod = 'pickup';
     }
+
+    // Determine order type based on delivery method
+    const orderType = normalizedDeliveryMethod === 'dine_in' ? 'dine_in' : 
+                     normalizedDeliveryMethod === 'delivery' ? 'online' : 'preorder';
 
     // Append table number to note if order is from a scanned table
     // This is only visible to the restaurant, not the customer

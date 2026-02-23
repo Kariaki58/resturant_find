@@ -112,7 +112,6 @@ function OrdersContent() {
           .from('orders')
           .select(`
             *,
-            table:tables(table_number),
             customer:users!orders_customer_id_fkey(full_name, email)
           `)
           .eq('restaurant_id', restaurantIdRef.current)
@@ -132,7 +131,33 @@ function OrdersContent() {
           console.error('Error fetching orders:', ordersError);
           setOrders([]);
         } else if (ordersData) {
-          let filtered = ordersData as Order[];
+          // Fetch tables separately for orders that have table_id
+          const ordersDataTyped = ordersData as any[];
+          const tableIds = ordersDataTyped
+            .map(order => order.table_id)
+            .filter((id): id is string => id !== null && id !== undefined);
+          
+          let tablesMap: Record<string, { table_number: number }> = {};
+          if (tableIds.length > 0) {
+            const { data: tablesData } = await supabase
+              .from('tables')
+              .select('id, table_number')
+              .in('id', tableIds);
+            
+            if (tablesData) {
+              const tablesDataTyped = tablesData as any[];
+              tablesMap = tablesDataTyped.reduce((acc, table: any) => {
+                acc[table.id] = { table_number: table.table_number };
+                return acc;
+              }, {} as Record<string, { table_number: number }>);
+            }
+          }
+
+          // Combine orders with table data
+          let filtered = ordersDataTyped.map(order => ({
+            ...order,
+            table: order.table_id ? tablesMap[order.table_id] || null : null,
+          })) as Order[];
           
           if (searchQuery) {
             filtered = filtered.filter(order => 
@@ -384,7 +409,7 @@ function OrdersContent() {
                       </div>
                       <div className="space-y-1 text-sm text-muted-foreground">
                         {order.table && (
-                          <p>Table {order.table.table_number}</p>
+                          <p className="font-medium text-primary">from Table {order.table.table_number}</p>
                         )}
                         {order.customer ? (
                           <div>

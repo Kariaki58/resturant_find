@@ -115,7 +115,6 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         .select(`
           *,
           customer:users!orders_customer_id_fkey(full_name, email, phone),
-          table:tables(table_number),
           order_items(
             id,
             quantity,
@@ -138,7 +137,25 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         return;
       }
 
-      setOrder(orderData as Order);
+      // Fetch table information separately if table_id exists
+      let tableData = null;
+      const orderDataTyped = orderData as any;
+      if (orderDataTyped.table_id) {
+        const { data: table } = await supabase
+          .from('tables')
+          .select('table_number')
+          .eq('id', orderDataTyped.table_id)
+          .maybeSingle();
+        tableData = table;
+      }
+
+      // Combine order data with table data
+      const orderWithTable = {
+        ...orderDataTyped,
+        table: tableData,
+      };
+
+      setOrder(orderWithTable as Order);
 
       // Fetch restaurant information
       const { data: restaurantData } = await supabase
@@ -375,6 +392,12 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           </h1>
           <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
             <Calendar className="w-4 h-4" /> {new Date(order.created_at).toLocaleString()}
+            {order.table && (
+              <>
+                <span className="mx-2">•</span>
+                <span className="font-medium text-primary">from Table {order.table.table_number}</span>
+              </>
+            )}
           </p>
         </div>
         <div className="ml-auto flex gap-2">
@@ -624,7 +647,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 <div className="flex items-start gap-3">
                   <MapPin className="w-4 h-4 mt-1 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-bold">Table {order.table.table_number}</p>
+                    <p className="text-sm font-bold text-primary">from Table {order.table.table_number}</p>
                     <p className="text-xs text-muted-foreground">Table Number</p>
                   </div>
                 </div>
@@ -632,7 +655,10 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               <div className="flex items-start gap-3">
                 {getDeliveryMethodIcon(order.delivery_method)}
                 <div>
-                  <p className="text-sm font-bold capitalize">{getDeliveryMethodLabel(order.delivery_method)}</p>
+                  <p className="text-sm font-bold capitalize">
+                    {getDeliveryMethodLabel(order.delivery_method)}
+                    {order.table && ` - from Table ${order.table.table_number}`}
+                  </p>
                   <p className="text-xs text-muted-foreground">Delivery Method</p>
                 </div>
               </div>
