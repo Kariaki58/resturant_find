@@ -559,13 +559,13 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         {/* Sidebar info */}
         <div className="space-y-6 print:hidden">
           {/* AI Analyzer Tool */}
-          {order.payment_proof_url && (
+          {/* {order.payment_proof_url && (
             <PaymentProofAnalyzer 
               imageUrl={order.payment_proof_url}
               expectedAmount={order.total_amount}
               customerName={order.buyer_transfer_name || order.customer?.full_name || ''}
             />
-          )}
+          )} */}
 
           <Card className="border-none shadow-sm">
             <CardHeader>
