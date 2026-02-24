@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Smartphone, CreditCard, ShieldCheck, Search, Utensils, Loader2, ChevronRight, QrCode, BarChart3, Users, Star, CheckCircle2, ArrowRight, HelpCircle, TrendingUp, Clock, Zap } from 'lucide-react';
+import { Smartphone, CreditCard, ShieldCheck, Search, Utensils, Loader2, ChevronRight, QrCode, BarChart3, Users, Star, CheckCircle2, ArrowRight, HelpCircle, TrendingUp, Clock, Zap, UserPlus } from 'lucide-react';
 import { GetStartedButton } from '@/components/get-started-button';
 import { AuthNavButtons } from '@/components/auth-nav-buttons';
 import { Logo } from '@/components/logo';
@@ -316,9 +316,9 @@ export default function Home() {
                   desc: "Manage all orders from one place. Update status, track progress, and notify customers instantly."
                 },
                 {
-                  icon: <Users className="w-8 h-8 text-primary" />,
-                  title: "Multi-staff Access",
-                  desc: "Invite staff members with different permission levels. Manage your team efficiently."
+                  icon: <UserPlus className="w-8 h-8 text-primary" />,
+                  title: "Guest Mode",
+                  desc: "Customers can browse menus and place orders without creating an account. Seamless guest checkout experience."
                 }
               ].map((f, i) => (
                 <div key={i} className="p-8 rounded-2xl bg-background hover:shadow-lg transition-all border border-transparent hover:border-primary/20">
@@ -411,10 +411,10 @@ export default function Home() {
                   question: "Do I need technical knowledge?",
                   answer: "Not at all! karimeals is designed to be simple and intuitive. If you can use a smartphone, you can use karimeals. We also provide support whenever you need help."
                 },
-                {
-                  question: "Can multiple staff members access the dashboard?",
-                  answer: "Yes! You can invite staff members with different permission levels. Control who can manage orders, update menus, or view analytics."
-                }
+                // {
+                //   question: "Can multiple staff members access the dashboard?",
+                //   answer: "Yes! You can invite staff members with different permission levels. Control who can manage orders, update menus, or view analytics."
+                // }
               ].map((faq, i) => (
                 <Card key={i} className="border-primary/10">
                   <CardContent className="p-6">
@@ -494,7 +494,7 @@ export default function Home() {
                 )}
               </div>
               <ul className="grid md:grid-cols-2 gap-4 text-left max-w-md mx-auto py-8">
-                {["Unlimited Orders", "QR Table System", "Bank Transfer Verification", "Menu Management", "Real-time Sales", "Multi-staff Support"].map((item, i) => (
+                {["Unlimited Orders", "QR Table System", "Bank Transfer Verification", "Menu Management", "Real-time Sales", "Guest Mode Access"].map((item, i) => (
                   <li key={i} className="flex items-center gap-3">
                     <ShieldCheck className="text-primary w-5 h-5 flex-shrink-0" />
                     <span className="font-medium text-sm">{item}</span>
