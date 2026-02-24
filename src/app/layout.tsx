@@ -1,6 +1,7 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
+import { Analytics } from "@vercel/analytics/next"
 
 export const metadata: Metadata = {
   title: 'karimeals | Nigerian Restaurant Management',
@@ -23,6 +24,7 @@ export default function RootLayout({
       <body className="font-body antialiased bg-background min-h-screen text-foreground selection:bg-primary selection:text-white">
         {children}
         <Toaster />
+        <Analytics/>
       </body>
     </html>
   );
