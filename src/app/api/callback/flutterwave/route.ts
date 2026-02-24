@@ -185,6 +185,7 @@ export async function GET(req: Request) {
       }
 
       // ── 8. Log subscription ──────────────────────────────────────────────
+      // Get the actual amount paid from the transaction
       const amountPaid = transactionData?.data?.amount || (plan === 'yearly' ? 38000 : 3800);
       await adminClient.from('subscriptions').insert({
         restaurant_id: restaurant.id,

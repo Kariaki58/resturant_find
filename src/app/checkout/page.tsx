@@ -25,6 +25,7 @@ function CheckoutContent() {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [profileReady, setProfileReady] = useState(false);
+  const [restaurantCount, setRestaurantCount] = useState<number | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -32,6 +33,17 @@ function CheckoutContent() {
 
   useEffect(() => {
     const init = async () => {
+      // Fetch restaurant count for pricing
+      try {
+        const countResponse = await fetch('/api/restaurants/count');
+        if (countResponse.ok) {
+          const countData = await countResponse.json();
+          setRestaurantCount(countData.count);
+        }
+      } catch (error) {
+        console.error('Failed to fetch restaurant count:', error);
+      }
+
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (!authUser) {
         router.push('/auth/login');
@@ -338,23 +350,36 @@ function CheckoutContent() {
                 </div>
 
                 <div>
-                  {subscriptionPlan === 'monthly' ? (
-                    <p className="text-5xl font-black flex items-baseline gap-1">
-                      <span className="text-2xl font-bold">₦</span>3,800
-                      <span className="text-lg font-normal opacity-70">/mo</span>
-                    </p>
-                  ) : (
-                    <div>
+                  {(() => {
+                    const isEarlyBird = restaurantCount !== null && restaurantCount < 20;
+                    const monthlyPrice = isEarlyBird ? '3,800' : '5,000';
+                    const yearlyPrice = isEarlyBird ? '38,000' : '50,000';
+                    const monthlyEquivalent = isEarlyBird ? '3,800' : '4,167';
+                    const savings = isEarlyBird ? '3,800' : '5,000';
+
+                    return subscriptionPlan === 'monthly' ? (
                       <p className="text-5xl font-black flex items-baseline gap-1">
-                        <span className="text-2xl font-bold">₦</span>38,000
-                        <span className="text-lg font-normal opacity-70">/year</span>
+                        <span className="text-2xl font-bold">₦</span>{monthlyPrice}
+                        <span className="text-lg font-normal opacity-70">/mo</span>
                       </p>
-                      <p className="text-sm text-white/70 mt-2">
-                        Save ₦3,800 - Only ₦3,800/month for 10 months
-                      </p>
-                    </div>
-                  )}
+                    ) : (
+                      <div>
+                        <p className="text-5xl font-black flex items-baseline gap-1">
+                          <span className="text-2xl font-bold">₦</span>{yearlyPrice}
+                          <span className="text-lg font-normal opacity-70">/year</span>
+                        </p>
+                        <p className="text-sm text-white/70 mt-2">
+                          Save ₦{savings} - Only ₦{monthlyEquivalent}/month for 10 months
+                        </p>
+                      </div>
+                    );
+                  })()}
                 </div>
+                {restaurantCount !== null && restaurantCount < 20 && (
+                  <Badge className="w-fit bg-green-500/20 text-green-200 border-green-400/30">
+                    Early Bird: {20 - restaurantCount} spots left
+                  </Badge>
+                )}
                 
                 <div className="space-y-4">
                   <p className="text-sm font-bold uppercase tracking-wider opacity-70">What's included:</p>

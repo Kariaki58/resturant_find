@@ -22,8 +22,11 @@ export async function POST(req: Request) {
     const payload = await req.json();
     console.log('[flutterwave-webhook] Received payload status:', payload.status);
 
-    // Accept both monthly (3800) and yearly (38000) payments
-    if (payload.status !== 'successful' || (payload.amount !== 3800 && payload.amount !== 38000)) {
+    // Accept both early bird and regular pricing
+    // Early bird: monthly (3800) and yearly (38000)
+    // Regular: monthly (5000) and yearly (50000)
+    const validAmounts = [3800, 38000, 5000, 50000];
+    if (payload.status !== 'successful' || !validAmounts.includes(payload.amount)) {
       return NextResponse.json({ status: 'ignored' });
     }
 

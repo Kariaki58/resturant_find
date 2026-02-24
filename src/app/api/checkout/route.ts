@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import crypto from 'crypto';
 
 export async function POST(req: Request) {
@@ -62,11 +63,25 @@ export async function POST(req: Request) {
       // Continue anyway - transaction meta should have the data
     }
 
-    // Determine amount based on plan
-    const amount = plan === 'yearly' ? 38000 : 3800;
+    // Get restaurant count to determine pricing
+    const adminClient = createAdminClient();
+    const { count } = await adminClient
+      .from('restaurants')
+      .select('*', { count: 'exact', head: true });
+    
+    const restaurantCount = count || 0;
+    const isEarlyBird = restaurantCount < 20;
+    
+    // Determine amount based on plan and restaurant count
+    // First 20 restaurants: ₦3,800/month or ₦38,000/year
+    // After 20: ₦5,000/month or ₦50,000/year
+    const amount = plan === 'yearly' 
+      ? (isEarlyBird ? 38000 : 50000)
+      : (isEarlyBird ? 3800 : 5000);
+    
     const planDescription = plan === 'yearly' 
-      ? 'Yearly subscription (10 months) for restaurant management platform'
-      : 'Monthly subscription for restaurant management platform';
+      ? `Yearly subscription (10 months) for restaurant management platform${isEarlyBird ? ' - Early Bird Pricing' : ''}`
+      : `Monthly subscription for restaurant management platform${isEarlyBird ? ' - Early Bird Pricing' : ''}`;
 
     // Prepare Flutterwave payment data
     const paymentData = {
