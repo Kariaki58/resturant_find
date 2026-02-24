@@ -63,7 +63,7 @@ function VerifyEmailContent() {
               <div>
                 <p className="text-sm font-medium text-foreground">After verification</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  You'll be able to complete your restaurant registration and start using resturantme.
+                  You'll be able to complete your restaurant registration and start using karimeals.
                 </p>
               </div>
             </div>

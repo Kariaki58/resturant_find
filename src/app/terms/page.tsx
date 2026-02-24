@@ -4,8 +4,8 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export const metadata = {
-  title: 'Terms of Service | resturantme',
-  description: 'Terms of Service for resturantme - Read our terms and conditions for using our restaurant management platform.',
+  title: 'Terms of Service | karimeals',
+  description: 'Terms of Service for karimeals - Read our terms and conditions for using our restaurant management platform.',
 };
 
 export default function TermsPage() {
@@ -37,17 +37,17 @@ export default function TermsPage() {
             <section className="mb-8">
               <h2 className="text-2xl font-bold font-headline mb-4">1. Acceptance of Terms</h2>
               <p className="text-foreground mb-4">
-                By accessing and using resturantme ("the Service"), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
+                By accessing and using karimeals ("the Service"), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
               </p>
               <p className="text-foreground">
-                These Terms of Service ("Terms") govern your access to and use of our website, mobile application, and services provided by resturantme Technologies ("we," "us," or "our").
+                These Terms of Service ("Terms") govern your access to and use of our website, mobile application, and services provided by karimeals Technologies ("we," "us," or "our").
               </p>
             </section>
 
             <section className="mb-8">
               <h2 className="text-2xl font-bold font-headline mb-4">2. Description of Service</h2>
               <p className="text-foreground mb-4">
-                resturantme is a restaurant management and online ordering platform that enables:
+                karimeals is a restaurant management and online ordering platform that enables:
               </p>
               <ul className="list-disc pl-6 mb-4 space-y-2 text-foreground">
                 <li>Restaurants to register, manage menus, process orders, and handle subscriptions</li>
@@ -139,7 +139,7 @@ export default function TermsPage() {
             <section className="mb-8">
               <h2 className="text-2xl font-bold font-headline mb-4">7. Intellectual Property</h2>
               <p className="text-foreground mb-4">
-                The Service and its original content, features, and functionality are owned by resturantme Technologies and are protected by international copyright, trademark, patent, trade secret, and other intellectual property laws.
+                The Service and its original content, features, and functionality are owned by karimeals Technologies and are protected by international copyright, trademark, patent, trade secret, and other intellectual property laws.
               </p>
               <p className="text-foreground mb-4">
                 You retain ownership of content you submit to the Service (e.g., menu items, restaurant information). By submitting content, you grant us a worldwide, non-exclusive, royalty-free license to use, reproduce, and display such content for the purpose of providing the Service.
@@ -161,14 +161,14 @@ export default function TermsPage() {
 
               <h3 className="text-xl font-bold font-headline mb-3 mt-6">8.3 Limitation of Liability</h3>
               <p className="text-foreground mb-4">
-                To the maximum extent permitted by law, resturantme Technologies shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly, or any loss of data, use, goodwill, or other intangible losses resulting from your use of the Service.
+                To the maximum extent permitted by law, karimeals Technologies shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly, or any loss of data, use, goodwill, or other intangible losses resulting from your use of the Service.
               </p>
             </section>
 
             <section className="mb-8">
               <h2 className="text-2xl font-bold font-headline mb-4">9. Indemnification</h2>
               <p className="text-foreground mb-4">
-                You agree to indemnify, defend, and hold harmless resturantme Technologies, its officers, directors, employees, and agents from and against any claims, liabilities, damages, losses, and expenses, including reasonable attorneys' fees, arising out of or in any way connected with your use of the Service, violation of these Terms, or infringement of any rights of another.
+                You agree to indemnify, defend, and hold harmless karimeals Technologies, its officers, directors, employees, and agents from and against any claims, liabilities, damages, losses, and expenses, including reasonable attorneys' fees, arising out of or in any way connected with your use of the Service, violation of these Terms, or infringement of any rights of another.
               </p>
             </section>
 
@@ -192,8 +192,8 @@ export default function TermsPage() {
                 If you have any questions about these Terms of Service, please contact us:
               </p>
               <div className="bg-muted/50 p-4 rounded-lg">
-                <p className="text-foreground font-medium mb-2">resturantme Technologies</p>
-                <p className="text-foreground">Email: support@resturantme.com</p>
+                <p className="text-foreground font-medium mb-2">karimeals Technologies</p>
+                <p className="text-foreground">Email: support@karimeals.com</p>
                 <p className="text-foreground">Address: Nigeria</p>
               </div>
             </section>
@@ -208,7 +208,7 @@ export default function TermsPage() {
             <Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
             <Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
           </div>
-          <p className="text-sm text-muted-foreground">© 2024 resturantme Technologies. Built for Nigeria.</p>
+          <p className="text-sm text-muted-foreground">© 2024 karimeals Technologies. Built for Nigeria.</p>
         </div>
       </footer>
     </div>

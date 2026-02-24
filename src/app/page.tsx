@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Smartphone, CreditCard, ShieldCheck, Search, Utensils, Loader2, ChevronRight } from 'lucide-react';
+import { Smartphone, CreditCard, ShieldCheck, Search, Utensils, Loader2, ChevronRight, QrCode, BarChart3, Users, Star, CheckCircle2, ArrowRight, HelpCircle, TrendingUp, Clock, Zap } from 'lucide-react';
 import { GetStartedButton } from '@/components/get-started-button';
 import { AuthNavButtons } from '@/components/auth-nav-buttons';
 import { Logo } from '@/components/logo';
@@ -88,6 +88,7 @@ export default function Home() {
         <nav className="hidden md:flex items-center gap-8">
           <Link href="#features" className="text-sm font-medium hover:text-primary transition-colors">Features</Link>
           <Link href="#pricing" className="text-sm font-medium hover:text-primary transition-colors">Pricing</Link>
+          <Link href="#faq" className="text-sm font-medium hover:text-primary transition-colors">FAQ</Link>
           <AuthNavButtons />
         </nav>
       </header>
@@ -206,8 +207,80 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Stats Section */}
+        <section className="py-16 px-6 bg-primary/5">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+              {[
+                { icon: <Users className="w-8 h-8 text-primary" />, value: "500+", label: "Active Restaurants" },
+                { icon: <TrendingUp className="w-8 h-8 text-primary" />, value: "50K+", label: "Orders Processed" },
+                { icon: <Clock className="w-8 h-8 text-primary" />, value: "24/7", label: "Support Available" },
+                { icon: <Zap className="w-8 h-8 text-primary" />, value: "99.9%", label: "Uptime" }
+              ].map((stat, i) => (
+                <div key={i} className="text-center">
+                  <div className="flex justify-center mb-4">
+                    <div className="p-4 bg-white rounded-xl shadow-sm">{stat.icon}</div>
+                  </div>
+                  <div className="text-3xl md:text-4xl font-bold font-headline mb-2">{stat.value}</div>
+                  <div className="text-sm text-muted-foreground font-medium">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* How It Works Section */}
+        <section className="py-24 px-6 bg-white">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center space-y-4 mb-16">
+              <h2 className="text-4xl font-bold font-headline">How It Works</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Get started in minutes. Simple setup, powerful results.
+              </p>
+            </div>
+            <div className="grid md:grid-cols-3 gap-8">
+              {[
+                {
+                  step: "01",
+                  title: "Sign Up & Register",
+                  desc: "Create your account and register your restaurant. Complete your profile with menu items and business details.",
+                  icon: <Users className="w-6 h-6 text-primary" />
+                },
+                {
+                  step: "02",
+                  title: "Set Up QR Codes",
+                  desc: "Generate QR codes for your tables. Print and place them on each table for customers to scan and order.",
+                  icon: <QrCode className="w-6 h-6 text-primary" />
+                },
+                {
+                  step: "03",
+                  title: "Start Accepting Orders",
+                  desc: "Receive orders in real-time, verify bank transfers, and manage everything from your dashboard.",
+                  icon: <CheckCircle2 className="w-6 h-6 text-primary" />
+                }
+              ].map((item, i) => (
+                <div key={i} className="relative">
+                  <div className="p-8 rounded-2xl bg-background border border-primary/10 hover:border-primary/30 transition-all">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="text-5xl font-bold text-primary/20 font-headline">{item.step}</div>
+                      <div className="p-3 bg-primary/10 rounded-lg">{item.icon}</div>
+                    </div>
+                    <h3 className="text-xl font-bold mb-3">{item.title}</h3>
+                    <p className="text-muted-foreground leading-relaxed">{item.desc}</p>
+                  </div>
+                  {i < 2 && (
+                    <div className="hidden md:block absolute top-1/2 -right-4 transform -translate-y-1/2">
+                      <ArrowRight className="w-8 h-8 text-primary/30" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Features */}
-        <section id="features" className="py-24 bg-white px-6">
+        <section id="features" className="py-24 bg-primary/5 px-6">
           <div className="max-w-6xl mx-auto">
             <div className="text-center space-y-4 mb-20">
               <h2 className="text-4xl font-bold font-headline">Built for the Nigerian Reality</h2>
@@ -231,6 +304,21 @@ export default function Home() {
                   icon: <ShieldCheck className="w-8 h-8 text-primary" />,
                   title: "SaaS Multi-tenancy",
                   desc: "Your data is yours. Completely isolated, secure, and always accessible."
+                },
+                {
+                  icon: <BarChart3 className="w-8 h-8 text-primary" />,
+                  title: "Real-time Analytics",
+                  desc: "Track sales, popular items, and customer trends with detailed analytics dashboard."
+                },
+                {
+                  icon: <Clock className="w-8 h-8 text-primary" />,
+                  title: "Order Management",
+                  desc: "Manage all orders from one place. Update status, track progress, and notify customers instantly."
+                },
+                {
+                  icon: <Users className="w-8 h-8 text-primary" />,
+                  title: "Multi-staff Access",
+                  desc: "Invite staff members with different permission levels. Manage your team efficiently."
                 }
               ].map((f, i) => (
                 <div key={i} className="p-8 rounded-2xl bg-background hover:shadow-lg transition-all border border-transparent hover:border-primary/20">
@@ -243,8 +331,109 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Testimonials Section */}
+        <section className="py-24 px-6 bg-white">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center space-y-4 mb-16">
+              <h2 className="text-4xl font-bold font-headline">What Our Customers Say</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Join hundreds of restaurants already using karimeals to grow their business
+              </p>
+            </div>
+            <div className="grid md:grid-cols-3 gap-8">
+              {[
+                {
+                  name: "Adebayo Ogunleye",
+                  role: "Owner, Spice Garden Restaurant",
+                  content: "karimeals transformed how we handle orders. The QR code system is a game-changer. Our customers love the convenience, and we've seen a 40% increase in orders.",
+                  rating: 5
+                },
+                {
+                  name: "Chioma Nwosu",
+                  role: "Manager, Lagos Eatery",
+                  content: "Bank transfer verification is seamless. No more payment disputes. The dashboard is intuitive and our staff picked it up in minutes.",
+                  rating: 5
+                },
+                {
+                  name: "Emeka Okoro",
+                  role: "Chef & Owner, The Grill House",
+                  content: "Best investment we've made. Real-time order tracking, easy menu management, and excellent customer support. Highly recommend!",
+                  rating: 5
+                }
+              ].map((testimonial, i) => (
+                <Card key={i} className="p-6 hover:shadow-lg transition-shadow">
+                  <CardContent className="p-0">
+                    <div className="flex gap-1 mb-4">
+                      {[...Array(testimonial.rating)].map((_, j) => (
+                        <Star key={j} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      ))}
+                    </div>
+                    <p className="text-muted-foreground mb-6 leading-relaxed">"{testimonial.content}"</p>
+                    <div>
+                      <p className="font-bold text-foreground">{testimonial.name}</p>
+                      <p className="text-sm text-muted-foreground">{testimonial.role}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ Section */}
+        <section id="faq" className="py-24 px-6 bg-primary/5">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center space-y-4 mb-16">
+              <h2 className="text-4xl font-bold font-headline">Frequently Asked Questions</h2>
+              <p className="text-muted-foreground">
+                Everything you need to know about karimeals
+              </p>
+            </div>
+            <div className="space-y-4">
+              {[
+                {
+                  question: "How do I get started?",
+                  answer: "Simply sign up, complete your restaurant profile, add your menu items, and generate QR codes for your tables. You can start accepting orders within minutes."
+                },
+                {
+                  question: "What payment methods do you support?",
+                  answer: "We support bank transfers with proof upload. Customers transfer money to your account and upload proof, which you verify in one click from your dashboard."
+                },
+                {
+                  question: "Can I customize my menu?",
+                  answer: "Yes! You have full control over your menu. Add, edit, or remove items anytime. Upload images, set prices, and organize items by categories."
+                },
+                {
+                  question: "Is there a setup fee?",
+                  answer: "No setup fees. Just pay the monthly subscription of ₦3,800. Cancel anytime with no long-term commitments."
+                },
+                {
+                  question: "Do I need technical knowledge?",
+                  answer: "Not at all! karimeals is designed to be simple and intuitive. If you can use a smartphone, you can use karimeals. We also provide support whenever you need help."
+                },
+                {
+                  question: "Can multiple staff members access the dashboard?",
+                  answer: "Yes! You can invite staff members with different permission levels. Control who can manage orders, update menus, or view analytics."
+                }
+              ].map((faq, i) => (
+                <Card key={i} className="border-primary/10">
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4">
+                      <HelpCircle className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
+                      <div className="flex-1">
+                        <h3 className="font-bold text-lg mb-2">{faq.question}</h3>
+                        <p className="text-muted-foreground leading-relaxed">{faq.answer}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Pricing */}
-        <section id="pricing" className="py-24 px-6 bg-primary/5">
+        <section id="pricing" className="py-24 px-6 bg-white">
           <div className="max-w-4xl mx-auto bg-white rounded-3xl p-12 border shadow-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 p-8">
               <div className="bg-primary text-white font-bold px-4 py-1 rounded-full text-xs uppercase tracking-widest">Most Popular</div>
@@ -328,7 +517,7 @@ export default function Home() {
             <Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
             <Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
           </div>
-          <p className="text-sm text-muted-foreground">© 2024 resturantme Technologies. Built for Nigeria.</p>
+          <p className="text-sm text-muted-foreground">© 2024 karimeals Technologies. Built for Nigeria.</p>
         </div>
       </footer>
     </div>

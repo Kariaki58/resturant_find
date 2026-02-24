@@ -4,8 +4,8 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export const metadata = {
-  title: 'Privacy Policy | resturantme',
-  description: 'Privacy Policy for resturantme - Learn how we collect, use, and protect your personal information.',
+  title: 'Privacy Policy | karimeals',
+  description: 'Privacy Policy for karimeals - Learn how we collect, use, and protect your personal information.',
 };
 
 export default function PrivacyPage() {
@@ -37,10 +37,10 @@ export default function PrivacyPage() {
             <section className="mb-8">
               <h2 className="text-2xl font-bold font-headline mb-4">1. Introduction</h2>
               <p className="text-foreground mb-4">
-                Welcome to resturantme ("we," "our," or "us"). We are committed to protecting your privacy and ensuring you have a positive experience on our platform. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our restaurant management and ordering platform.
+                Welcome to karimeals ("we," "our," or "us"). We are committed to protecting your privacy and ensuring you have a positive experience on our platform. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our restaurant management and ordering platform.
               </p>
               <p className="text-foreground">
-                By using resturantme, you agree to the collection and use of information in accordance with this policy. If you do not agree with our policies and practices, please do not use our services.
+                By using karimeals, you agree to the collection and use of information in accordance with this policy. If you do not agree with our policies and practices, please do not use our services.
               </p>
             </section>
 
@@ -150,8 +150,8 @@ export default function PrivacyPage() {
                 If you have any questions about this Privacy Policy or our data practices, please contact us:
               </p>
               <div className="bg-muted/50 p-4 rounded-lg">
-                <p className="text-foreground font-medium mb-2">resturantme Technologies</p>
-                <p className="text-foreground">Email: privacy@resturantme.com</p>
+                <p className="text-foreground font-medium mb-2">karimeals Technologies</p>
+                <p className="text-foreground">Email: privacy@karimeals.com</p>
                 <p className="text-foreground">Address: Nigeria</p>
               </div>
             </section>
@@ -166,7 +166,7 @@ export default function PrivacyPage() {
             <Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
             <Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
           </div>
-          <p className="text-sm text-muted-foreground">© 2024 resturantme Technologies. Built for Nigeria.</p>
+          <p className="text-sm text-muted-foreground">© 2024 karimeals Technologies. Built for Nigeria.</p>
         </div>
       </footer>
     </div>

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 interface LogoProps {
@@ -6,45 +7,31 @@ interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   href?: string;
   showLink?: boolean;
-  variant?: 'default' | 'white';
 }
 
-export function Logo({ 
-  className, 
+export function Logo({
+  className,
   size = 'md',
   href = '/',
   showLink = true,
-  variant = 'default'
 }: LogoProps) {
-  const sizeClasses = {
-    sm: 'text-lg',
-    md: 'text-2xl',
-    lg: 'text-3xl',
-    xl: 'text-4xl md:text-5xl',
+
+  const sizeMap = {
+    sm: 80,
+    md: 120,
+    lg: 160,
+    xl: 200,
   };
 
-  const isWhite = variant === 'white';
-
   const logoContent = (
-    <span 
-      className={cn(
-        'font-bold tracking-tight transition-all duration-300 inline-flex items-baseline',
-        sizeClasses[size],
-        className
-      )}
-      style={{
-        fontFamily: 'var(--font-headline), system-ui, sans-serif',
-      }}
-    >
-      <span className={cn(
-        'italic font-extrabold',
-        isWhite ? 'text-white' : 'text-foreground'
-      )}>resturant</span>
-      <span className={cn(
-        'italic font-black ml-0.5',
-        isWhite ? 'text-white drop-shadow-md' : 'text-primary drop-shadow-sm'
-      )}>me</span>
-    </span>
+    <Image
+      src="https://res.cloudinary.com/duswkmqbu/image/upload/v1771909519/logo_bxu00l.png"
+      alt="karimeals logo"
+      width={sizeMap[size]}
+      height={sizeMap[size] * 0.4} 
+      priority
+      className={cn('object-contain', className)}
+    />
   );
 
   if (!showLink) {
@@ -52,13 +39,12 @@ export function Logo({
   }
 
   return (
-    <Link 
-      href={href} 
+    <Link
+      href={href}
       className="flex items-center hover:opacity-80 transition-opacity duration-200"
-      aria-label="resturantme - Home"
+      aria-label="karimeals - Home"
     >
       {logoContent}
     </Link>
   );
 }
-
