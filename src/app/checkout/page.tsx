@@ -351,11 +351,11 @@ function CheckoutContent() {
 
                 <div>
                   {(() => {
-                    const isEarlyBird = restaurantCount !== null && restaurantCount < 20;
-                    const monthlyPrice = isEarlyBird ? '3,800' : '5,000';
-                    const yearlyPrice = isEarlyBird ? '38,000' : '50,000';
-                    const monthlyEquivalent = isEarlyBird ? '3,800' : '4,167';
-                    const savings = isEarlyBird ? '3,800' : '5,000';
+                    // Pricing: ₦20,000/month or ₦200,000/year (10 months)
+                    const monthlyPrice = '20,000';
+                    const yearlyPrice = '200,000';
+                    const monthlyEquivalent = '20,000';
+                    const savings = '20,000';
 
                     return subscriptionPlan === 'monthly' ? (
                       <p className="text-5xl font-black flex items-baseline gap-1">
@@ -375,11 +375,6 @@ function CheckoutContent() {
                     );
                   })()}
                 </div>
-                {restaurantCount !== null && restaurantCount < 20 && (
-                  <Badge className="w-fit bg-green-500/20 text-green-200 border-green-400/30">
-                    Early Bird: {20 - restaurantCount} spots left
-                  </Badge>
-                )}
                 
                 <div className="space-y-4">
                   <p className="text-sm font-bold uppercase tracking-wider opacity-70">What's included:</p>

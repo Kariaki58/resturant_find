@@ -495,13 +495,10 @@ export default function Home() {
 
               <div className="flex items-center justify-center gap-1">
                 {(() => {
-                  // Calculate prices based on restaurant count
-                  // First 20 restaurants: ₦3,800/month or ₦38,000/year
-                  // After 20: ₦5,000/month or ₦50,000/year
-                  const isEarlyBird = restaurantCount !== null && restaurantCount < 20;
-                  const monthlyPrice = isEarlyBird ? '₦3,800' : '₦5,000';
-                  const yearlyPrice = isEarlyBird ? '₦38,000' : '₦50,000';
-                  const monthlyEquivalent = isEarlyBird ? '₦3,800' : '₦4,167';
+                  // Pricing: ₦20,000/month or ₦200,000/year (10 months)
+                  const monthlyPrice = '₦20,000';
+                  const yearlyPrice = '₦200,000';
+                  const monthlyEquivalent = '₦20,000';
 
                   return subscriptionPlan === 'monthly' ? (
                     <>
@@ -521,11 +518,6 @@ export default function Home() {
                   );
                 })()}
               </div>
-              {restaurantCount !== null && restaurantCount < 20 && (
-                <p className="text-sm text-primary font-semibold">
-                  Early Bird Offer: {20 - restaurantCount} spots remaining at ₦3,800/month
-                </p>
-              )}
               <ul className="grid md:grid-cols-2 gap-4 text-left max-w-md mx-auto py-8">
                 {["Unlimited Orders", "QR Table System", "Bank Transfer Verification", "Menu Management", "Real-time Sales", "Guest Mode Access"].map((item, i) => (
                   <li key={i} className="flex items-center gap-3">
