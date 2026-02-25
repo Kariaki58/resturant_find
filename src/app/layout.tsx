@@ -5,7 +5,7 @@ import { Analytics } from "@vercel/analytics/next"
 
 export const metadata: Metadata = {
   title: 'karimeals | Nigerian Restaurant Management',
-  description: 'Full-stack SaaS platform for Nigerian restaurants. Manage orders, menus, and table reservations with ease.',
+  description: 'Nigeria’s all-in-one restaurant management platform. Take orders, manage menus, control tables, and streamline operations from a single powerful dashboard.',
   icons: {
     icon: '/favicon.ico',
     shortcut: '/favicon.ico',
