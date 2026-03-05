@@ -150,7 +150,7 @@ export default function BillingPage() {
           )}
 
           <div className="pt-4 border-t border-white/20">
-            <p className="text-3xl font-bold mb-2">₦20,000</p>
+            <p className="text-3xl font-bold mb-2">₦5,500</p>
             <p className="text-sm opacity-80">per month</p>
           </div>
         </CardContent>
@@ -220,7 +220,7 @@ export default function BillingPage() {
             <div className="border rounded-lg p-4 space-y-3">
               <div>
                 <h3 className="font-bold text-lg">Monthly Plan</h3>
-                <p className="text-2xl font-black text-primary">₦20,000</p>
+                <p className="text-2xl font-black text-primary">₦5,500</p>
                 <p className="text-sm text-muted-foreground">per month</p>
               </div>
               <Button className="w-full" size="lg" variant="outline">
@@ -237,9 +237,9 @@ export default function BillingPage() {
                   <h3 className="font-bold text-lg">Yearly Plan</h3>
                   <span className="text-xs bg-primary text-white px-2 py-0.5 rounded-full font-bold">SAVE</span>
                 </div>
-                <p className="text-2xl font-black text-primary">₦200,000</p>
+                <p className="text-2xl font-black text-primary">₦55,000</p>
                 <p className="text-sm text-muted-foreground">for 10 months</p>
-                <p className="text-xs text-primary font-bold mt-1">Only ₦20,000/month</p>
+                <p className="text-xs text-primary font-bold mt-1">Only ₦5,500/month</p>
               </div>
               <Button className="w-full" size="lg">
                 <CreditCard className="mr-2 h-4 w-4" />

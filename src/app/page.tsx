@@ -423,7 +423,7 @@ export default function Home() {
                 },
                 {
                   question: "Is there a setup fee?",
-                  answer: "No setup fees. Early bird pricing: ₦3,800/month or ₦38,000/year for the first 20 restaurants. After that, pricing is ₦5,000/month or ₦50,000/year. Cancel anytime with no long-term commitments."
+                  answer: "No setup fees. Pricing is ₦5,500/month or ₦55,000/year (10 months). Cancel anytime with no long-term commitments."
                 },
                 {
                   question: "Do I need technical knowledge?",
@@ -495,10 +495,10 @@ export default function Home() {
 
               <div className="flex items-center justify-center gap-1">
                 {(() => {
-                  // Pricing: ₦20,000/month or ₦200,000/year (10 months)
-                  const monthlyPrice = '₦20,000';
-                  const yearlyPrice = '₦200,000';
-                  const monthlyEquivalent = '₦20,000';
+                  // Pricing: ₦5,500/month or ₦55,000/year (10 months)
+                  const monthlyPrice = '₦5,500';
+                  const yearlyPrice = '₦55,000';
+                  const monthlyEquivalent = '₦5,500';
 
                   return subscriptionPlan === 'monthly' ? (
                     <>

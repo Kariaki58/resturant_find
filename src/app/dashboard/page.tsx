@@ -638,7 +638,7 @@ export default function DashboardPage() {
               {restaurant?.subscription_expires_at && (
                 <p className="text-xs opacity-80 break-words">
                   {restaurant.subscription_status === 'active' ? 'Next billing: ' : 'Expires: '}
-                  {new Date(restaurant.subscription_expires_at).toLocaleDateString()} (₦20,000)
+                  {new Date(restaurant.subscription_expires_at).toLocaleDateString()} (₦5,500)
                 </p>
               )}
               <Button variant="secondary" className="w-full font-bold text-sm sm:text-base" asChild>

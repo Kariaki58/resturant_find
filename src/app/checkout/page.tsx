@@ -351,11 +351,11 @@ function CheckoutContent() {
 
                 <div>
                   {(() => {
-                    // Pricing: ₦20,000/month or ₦200,000/year (10 months)
-                    const monthlyPrice = '20,000';
-                    const yearlyPrice = '200,000';
-                    const monthlyEquivalent = '20,000';
-                    const savings = '20,000';
+                    // Pricing: ₦5,500/month or ₦55,000/year (10 months)
+                    const monthlyPrice = '5,500';
+                    const yearlyPrice = '55,000';
+                    const monthlyEquivalent = '5,500';
+                    const savings = '5,000';
 
                     return subscriptionPlan === 'monthly' ? (
                       <p className="text-5xl font-black flex items-baseline gap-1">

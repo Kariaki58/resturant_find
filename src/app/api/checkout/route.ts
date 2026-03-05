@@ -64,11 +64,11 @@ export async function POST(req: Request) {
     }
 
     // Determine amount based on plan
-    // Monthly: ₦20,000/month
-    // Yearly: ₦200,000/year (10 months)
+    // Monthly: ₦5,500/month
+    // Yearly: ₦55,000/year (10 months)
     const amount = plan === 'yearly' 
-      ? 200000
-      : 20000;
+      ? 55000
+      : 5500;
     
     const planDescription = plan === 'yearly' 
       ? `Yearly subscription (10 months) for restaurant management platform`

@@ -22,8 +22,8 @@ export async function POST(req: Request) {
     const payload = await req.json();
     console.log('[flutterwave-webhook] Received payload status:', payload.status);
 
-    // Accept pricing: monthly (20000) and yearly (200000)
-    const validAmounts = [20000, 200000];
+    // Accept pricing: monthly (5500) and yearly (55000)
+    const validAmounts = [5500, 55000];
     if (payload.status !== 'successful' || !validAmounts.includes(payload.amount)) {
       return NextResponse.json({ status: 'ignored' });
     }
@@ -112,7 +112,7 @@ export async function POST(req: Request) {
     // ── Create restaurant ─────────────────────────────────────────────────
     // Determine plan from meta or amount if not set
     if (!plan) {
-      plan = payload.amount === 200000 ? 'yearly' : 'monthly';
+      plan = payload.amount === 55000 ? 'yearly' : 'monthly';
     }
     const periodEnd = new Date();
     if (plan === 'yearly') {
@@ -162,7 +162,7 @@ export async function POST(req: Request) {
       user_id: userId,
       plan: plan,
       status: 'active',
-      amount_paid: payload.amount || (plan === 'yearly' ? 200000 : 20000),
+      amount_paid: payload.amount || (plan === 'yearly' ? 55000 : 5500),
       currency: 'NGN',
       flutterwave_tx_ref: tx_ref,
       period_start: new Date().toISOString(),
