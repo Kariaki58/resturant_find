@@ -1,8 +1,8 @@
-# **App Name**: ChopChop NG
+# **App Name**: ChopChop
 
 ## Core Features:
 
-- Restaurant Registration and Subscription: Allows Nigerian restaurants to register on the platform and subscribe to a monthly plan via Flutterwave.
+- Restaurant Registration and Subscription: Allows restaurants to register on the platform and subscribe to a monthly plan via Flutterwave.
 - Online Ordering with Bank Transfer: Enables customers to place orders online and pay via manual bank transfer, uploading payment proof for restaurant confirmation.
 - Dine-In Ordering via QR Codes: Generates QR codes for each table, allowing customers to scan and place orders directly from their table.
 - Pre-Order System: Allows customers to pre-order food for a specific arrival time, with options to pay via transfer or at the restaurant.
@@ -12,7 +12,7 @@
 
 ## Style Guidelines:
 
-- Primary color: Vibrant orange (#FF7800) to reflect Nigerian culture and cuisine.
+- Primary color: Vibrant orange (#FF7800) to reflect warmth, appetite, and hospitality.
 - Background color: Light orange (#FFEAD3), a softer shade of the primary color.
 - Accent color: Analogous reddish-orange (#FF5733) to give contrast.
 - Body and headline font: 'PT Sans', sans-serif, combining a modern look with some warmth

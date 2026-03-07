@@ -4,8 +4,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Analytics } from "@vercel/analytics/next"
 
 export const metadata: Metadata = {
-  title: 'karimeals | Nigerian Restaurant Management',
-  description: 'Nigeria’s all-in-one restaurant management platform. Take orders, manage menus, control tables, and streamline operations from a single powerful dashboard.',
+  title: 'karimeals | Restaurant Management',
+  description: 'An all-in-one restaurant management platform. Take orders, manage menus, control tables, and streamline operations from a single powerful dashboard.',
   icons: {
     icon: '/favicon.ico',
     shortcut: '/favicon.ico',

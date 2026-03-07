@@ -208,7 +208,7 @@ export default function TermsPage() {
             <Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
             <Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
           </div>
-          <p className="text-sm text-muted-foreground">© 2024 karimeals Technologies. Built for Nigeria.</p>
+          <p className="text-sm text-muted-foreground">© 2024 karimeals Technologies. All rights reserved.</p>
         </div>
       </footer>
     </div>

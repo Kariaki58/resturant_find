@@ -117,7 +117,7 @@ export default function Home() {
           <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
             <div className="space-y-8 relative z-10">
               <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full text-primary font-bold text-sm">
-                <span className="animate-pulse">●</span> Made for Nigeria
+                <span className="animate-pulse">●</span> Made for restaurants everywhere
               </div>
               <h1 className="text-5xl md:text-7xl font-bold font-headline leading-[1.1]">
                 Modernize Your <span className="text-primary italic">Hotel</span> or Restaurant
@@ -301,7 +301,7 @@ export default function Home() {
         <section id="features" className="py-24 bg-primary/5 px-6">
           <div className="max-w-6xl mx-auto">
             <div className="text-center space-y-4 mb-20">
-              <h2 className="text-4xl font-bold font-headline">Built for the Nigerian Reality</h2>
+              <h2 className="text-4xl font-bold font-headline">Built for real-world operations</h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
                 No complex card systems. We focus on what works: Bank Transfers, QR Codes, and Real-time notifications.
               </p>
@@ -361,19 +361,19 @@ export default function Home() {
             <div className="grid md:grid-cols-3 gap-8">
               {[
                 {
-                  name: "Adebayo Ogunleye",
+                  name: "Jordan Lee",
                   role: "Owner, Spice Garden Restaurant",
                   content: "karimeals transformed how we handle orders. The QR code system is a game-changer. Our customers love the convenience, and we've seen a 40% increase in orders.",
                   rating: 5
                 },
                 {
-                  name: "Chioma Nwosu",
-                  role: "Manager, Lagos Eatery",
+                  name: "Priya Sharma",
+                  role: "Operations Manager, City Eatery",
                   content: "Bank transfer verification is seamless. No more payment disputes. The dashboard is intuitive and our staff picked it up in minutes.",
                   rating: 5
                 },
                 {
-                  name: "Emeka Okoro",
+                  name: "Carlos Mendes",
                   role: "Chef & Owner, The Grill House",
                   content: "Best investment we've made. Real-time order tracking, easy menu management, and excellent customer support. Highly recommend!",
                   rating: 5
@@ -542,7 +542,7 @@ export default function Home() {
             <Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
             <Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
           </div>
-          <p className="text-sm text-muted-foreground">© 2024 karimeals Technologies. Built for Nigeria.</p>
+          <p className="text-sm text-muted-foreground">© 2024 karimeals Technologies. All rights reserved.</p>
         </div>
       </footer>
     </div>
